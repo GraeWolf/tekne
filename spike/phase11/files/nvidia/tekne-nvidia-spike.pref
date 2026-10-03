@@ -1,0 +1,15 @@
+# Phase 11 spike, option 3 (DEC-041, DEC-026): NVIDIA's repository may only
+# provide the display driver, built from these source packages. Its CUDA
+# toolkit, its nvidia-driver-pinning-* package (which would add its own APT
+# pin) and anything else it publishes can never be installed.
+Package: cuda-*
+Pin: origin "developer.download.nvidia.com"
+Pin-Priority: -1
+
+Package: src:nvidia-graphics-drivers src:nvidia-kmod-open src:nvidia-modprobe src:egl-wayland2 src:egl-x11 src:nvidia-egl-gbm
+Pin: origin "developer.download.nvidia.com"
+Pin-Priority: 500
+
+Package: *
+Pin: origin "developer.download.nvidia.com"
+Pin-Priority: -1

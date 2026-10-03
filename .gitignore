@@ -29,3 +29,7 @@ tests/**/*.img
 
 # Python bytecode
 __pycache__/
+
+# Phase 11 spike: raw kernel logs name the home Wi-Fi network (BSSID) and the
+# laptop's MAC address; their findings are in spike/phase11/README.md.
+spike/phase11/results/dmesg-*.txt

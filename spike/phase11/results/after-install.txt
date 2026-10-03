@@ -1,0 +1,226 @@
+
+=== context
+2026-10-03T13:06:55-04:00
+7.1.13+deb13-amd64
+AC online: 1
+GPU: /sys/bus/pci/devices/0000:01:00.0
+
+=== runtime PM before any GPU use (sampled for 20 s)
+t=4s gpu=active/on audio=active/on
+t=8s gpu=active/on audio=active/on
+t=12s gpu=active/on audio=active/on
+t=16s gpu=active/on audio=active/on
+t=20s gpu=active/on audio=active/on
+Runtime D3 status:          Enabled (fine-grained)
+Tegra iGPU Rail-Gating:     Disabled
+Video Memory:               Active
+
+GPU Hardware Support:
+ Video Memory Self Refresh: Supported
+ Video Memory Off:          Supported
+
+S0ix Power Management:
+ Platform Support:          Supported
+ Status:                    Enabled
+
+Notebook Dynamic Boost:     Supported
+
+=== dkms status
+spike/phase11/check.sh: line 14: dkms: command not found
+
+=== modules
+nvidia_drm            176128  1
+nvidia_modeset       1998848  1 nvidia_drm
+amdgpu              21139456  9
+nvidia              18513920  2 nvidia_modeset
+
+=== lspci -k -s 0000:01:00.0
+01:00.0 VGA compatible controller: NVIDIA Corporation GA106M [GeForce RTX 3060 Mobile / Max-Q] (rev a1)
+	Subsystem: ASUSTeK Computer Inc. Device 1a5c
+	Kernel driver in use: nvidia
+	Kernel modules: nouveau, nvidia_drm, nvidia
+
+=== driver parameters
+PreserveVideoMemoryAllocations: 1
+UseKernelSuspendNotifiers: 1
+EnableS0ixPowerManagement: 1
+DynamicPowerManagement: 2
+DynamicPowerManagementVideoMemoryThreshold: 200
+TemporaryFilePath: "/var/tmp"
+nvidia_drm modeset: Y
+
+=== X log: NVIDIA, ABI and errors (/home/kmccuddy/.local/state/xorg/Xorg.0.log)
+10:	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+39:[2026-10-03 13:06:13] (II) Module ABI versions:
+58:[2026-10-03 13:06:14] (**) OutputClass "nvidia" ModulePath for driver nvidia reset to default
+59:[2026-10-03 13:06:14] (**) OutputClass "NVidia" ModulePath for driver nvidia overridden with "/usr/lib/x86_64-linux-gnu/nvidia/xorg,/usr/lib/nvidia/nvidia,/usr/lib/xorg/modules"
+60:[2026-10-03 13:06:14] (**) OutputClass "NVidia-modules" ModulePath for modules glx,glxserver_nvidia overridden with "/usr/lib/x86_64-linux-gnu/nvidia/xorg,/usr/lib/nvidia/nvidia,/usr/lib/xorg/modules"
+67:[2026-10-03 13:06:14] 	ABI class: X.Org Server Extension, version 11.0
+68:[2026-10-03 13:06:14] (II) Applying OutputClass "nvidia" to /dev/dri/card1
+69:[2026-10-03 13:06:14] 	loading driver: nvidia
+71:[2026-10-03 13:06:14] 	loading driver: nvidia
+75:[2026-10-03 13:06:14] (==) Matched nvidia as autoconfigured driver 1
+84:[2026-10-03 13:06:14] (EE) Failed to load module "ati" (module does not exist, 0)
+85:[2026-10-03 13:06:14] (II) LoadModule: "nvidia"
+86:[2026-10-03 13:06:14] (WW) LoadModule: If you are using one of the legacy branches of the nvidia proprierary DDX driver (e.g. 470, 390, 340, etc.)
+87:[2026-10-03 13:06:14] (WW) LoadModule: you need to build Xlibre with -Dlegacy_nvidia_padding=true
+89:[2026-10-03 13:06:14] (WW) LoadModule: If you are using one of the maintained branches of the nvidia nvidia kernel drivers,
+90:[2026-10-03 13:06:14] (WW) LoadModule: you can try using the in-tree, open-source modesetting DDX driver instead of the proprietary nvidia DDX driver.
+91:[2026-10-03 13:06:14] (WW) LoadModule: Implicitly ignoring abi mismatch for the nvidia proprierary DDX driver
+92:[2026-10-03 13:06:14] (II) Loading /usr/lib/xorg/modules/drivers/nvidia_drv.so
+93:[2026-10-03 13:06:14] (II) Module nvidia: vendor="NVIDIA Corporation"
+96:[2026-10-03 13:06:14] (WW) NVIDIA: This server has an unsupported input driver ABI version (have 26.0, need < 25.0).  The driver will continue to load, but may behave strangely.
+99:[2026-10-03 13:06:14] (EE) Failed to load module "nouveau" (module does not exist, 0)
+105:[2026-10-03 13:06:14] 	ABI class: X.Org Video Driver, version 28.1
+108:[2026-10-03 13:06:14] (EE) Failed to load module "nv" (module does not exist, 0)
+111:[2026-10-03 13:06:14] (EE) Failed to load module "fbdev" (module does not exist, 0)
+114:[2026-10-03 13:06:14] (EE) Failed to load module "vesa" (module does not exist, 0)
+115:[2026-10-03 13:06:14] (II) NVIDIA dlloader X Driver  615.71.09  Fri Sep  4 22:06:07 UTC 2026
+116:[2026-10-03 13:06:14] (II) NVIDIA Unified Driver for all Supported NVIDIA GPUs
+129:[2026-10-03 13:06:14] 	ABI class: X.Org ANSI C Emulation, version 1.4
+131:[2026-10-03 13:06:14] (II)   PCI bus id 0@1:0:0 has already been claimed by "Autoconfigured Video Device nvidia".
+145:[2026-10-03 13:06:14] 	ABI class: X.Org ANSI C Emulation, version 1.4
+300:[2026-10-03 13:06:14] (==) NVIDIA(G0): Depth 24, (==) framebuffer bpp 32
+301:[2026-10-03 13:06:14] (==) NVIDIA(G0): RGB weight 888
+302:[2026-10-03 13:06:14] (==) NVIDIA(G0): Default visual is TrueColor
+303:[2026-10-03 13:06:14] (==) NVIDIA(G0): Using gamma correction (1.00, 1.00, 1.00)
+305:[2026-10-03 13:06:14] (**) NVIDIA(G0): Option "AllowEmptyInitialConfiguration"
+306:[2026-10-03 13:06:14] (**) NVIDIA(G0): Enabling 2D acceleration
+307:[2026-10-03 13:06:14] (II) Loading sub module "glxserver_nvidia"
+308:[2026-10-03 13:06:14] (II) LoadModule: "glxserver_nvidia"
+309:[2026-10-03 13:06:14] (II) Loading /usr/lib/xorg/modules/extensions/libglxserver_nvidia.so
+310:[2026-10-03 13:06:14] (II) Module glxserver_nvidia: vendor="NVIDIA Corporation"
+313:[2026-10-03 13:06:14] (II) NVIDIA GLX Module  615.71.09  Fri Sep  4 22:06:07 UTC 2026
+314:[2026-10-03 13:06:14] (II) NVIDIA: The X server supports PRIME Render Offload.
+315:[2026-10-03 13:06:14] (--) NVIDIA(0): Valid display device(s) on GPU-0 at PCI:1:0:0
+316:[2026-10-03 13:06:14] (--) NVIDIA(0):     DFP-0
+317:[2026-10-03 13:06:14] (--) NVIDIA(0):     DFP-1
+318:[2026-10-03 13:06:14] (--) NVIDIA(0):     DFP-2
+319:[2026-10-03 13:06:14] (--) NVIDIA(0):     DFP-3
+320:[2026-10-03 13:06:14] (II) NVIDIA(G0): NVIDIA GPU NVIDIA GeForce RTX 3060 Laptop GPU (GA106-A) at
+321:[2026-10-03 13:06:14] (II) NVIDIA(G0):     PCI:1:0:0 (GPU-0)
+322:[2026-10-03 13:06:14] (--) NVIDIA(G0): Memory: 6291456 kBytes
+323:[2026-10-03 13:06:14] (--) NVIDIA(G0): VideoBIOS: 94.06.39.00.07
+324:[2026-10-03 13:06:14] (II) NVIDIA(G0): Detected PCI Express Link width: 16X
+325:[2026-10-03 13:06:14] (EE) NVIDIA(GPU-0): Failed to acquire modesetting permission.
+326:[2026-10-03 13:06:14] (EE) NVIDIA(G0): Failing initialization of X screen
+327:[2026-10-03 13:06:14] (II) UnloadModule: "nvidia"
+328:[2026-10-03 13:06:14] (II) UnloadSubModule: "glxserver_nvidia"
+329:[2026-10-03 13:06:14] (II) Unloading glxserver_nvidia
+369:[2026-10-03 13:06:14] (EE) Failed to initialize GLX extension (Compatible NVIDIA X driver not found)
+401:[2026-10-03 13:06:14] 	ABI class: X.Org XInput driver, version 26.0
+
+=== xrandr --listproviders
+Providers: number : 1
+Provider 0: id: 0x4b cap: 0xf, Source Output, Sink Output, Source Offload, Sink Offload crtcs: 4 outputs: 9 associated providers: 0 name:modesetting
+
+=== xrandr --query
+Screen 0: minimum 320 x 200, current 2560 x 1440, maximum 16384 x 16384
+eDP-2 connected primary 2560x1440+0+0 (normal left inverted right x axis y axis) 344mm x 194mm
+   2560x1440    165.00*+  60.00 +  60.00  
+   1920x1440     60.00  
+   1856x1392     60.00  
+   1792x1344     60.00  
+   2048x1152     60.00  
+   1920x1200    165.00    60.00  
+   1920x1080    165.00    60.00  
+   1600x1200    165.00    60.00  
+   1680x1050    165.00    60.00  
+   1400x1050     60.00  
+   1600x900      60.00  
+   1280x1024    165.00    60.00  
+   1440x900     165.00  
+   1400x900      60.00  
+   1280x960      60.00  
+   1440x810      60.00  
+   1368x768      60.00  
+   1280x800     165.00    60.00  
+   1152x864      60.00  
+   1280x720     165.00    60.00  
+   1024x768     165.00    60.00  
+   1024x768i     60.00  
+   960x720       60.00  
+   928x696       60.00  
+   896x672       60.00  
+   1024x576      60.00  
+   960x600       60.00  
+   832x624       60.00  
+   960x540       60.00  
+   800x600      165.00    60.00  
+   840x525       60.00  
+   864x486       60.00  
+   700x525       60.00  
+   800x450       60.00  
+   640x512       60.00  
+   700x450       60.00  
+   640x480      165.00    60.00  
+   720x405       60.00  
+   720x400       60.00  
+   684x384       60.00  
+   640x400       60.00  
+   576x432       60.00  
+   640x360       60.00  
+   640x350       60.00  
+   512x384       60.00  
+   512x384i      60.00  
+   512x288       60.00  
+   416x312       60.00  
+   480x270       60.00  
+   400x300       60.00  
+   432x243       60.00  
+   320x240       60.00  
+   360x202       60.00  
+   360x200       60.00  
+   320x200       60.00  
+   320x180       60.00  
+   320x175       60.00  
+DP-2 disconnected (normal left inverted right x axis y axis)
+DP-3 disconnected (normal left inverted right x axis y axis)
+DP-4 disconnected (normal left inverted right x axis y axis)
+DP-5 disconnected (normal left inverted right x axis y axis)
+DP-6 disconnected (normal left inverted right x axis y axis)
+DP-7 disconnected (normal left inverted right x axis y axis)
+DP-8 disconnected (normal left inverted right x axis y axis)
+DP-9 disconnected (normal left inverted right x axis y axis)
+
+=== OpenGL: default and offloaded
+default:
+OpenGL vendor string: AMD
+OpenGL renderer string: AMD Radeon 680M (radeonsi, rembrandt, LLVM 19.1.7, DRM 3.64, 7.1.13+deb13-amd64)
+offload:
+OpenGL vendor string: NVIDIA Corporation
+OpenGL renderer string: NVIDIA GeForce RTX 3060 Laptop GPU/PCIe/SSE2
+
+=== Vulkan devices, offloaded
+	deviceName         = AMD Radeon 680M (RADV REMBRANDT)
+	driverName         = radv
+	deviceName         = NVIDIA GeForce RTX 3060 Laptop GPU
+	driverName         = NVIDIA
+	deviceName         = llvmpipe (LLVM 19.1.7, 256 bits)
+	driverName         = llvmpipe
+
+=== runtime PM 30 s after offload
+gpu=active/on audio=active/on
+
+=== nvidia-smi
+spike/phase11/check.sh: line 14: nvidia-smi: command not found
+
+=== spike log (sleep hook)
+2026-10-03T12:16:10-04:00 install: start on 7.1.13+deb13-amd64
+2026-10-03T12:16:10-04:00 install: installed pin, modprobe options, udev rule and elogind sleep hook
+2026-10-03T12:45:54-04:00 rollback: start
+2026-10-03T12:56:10-04:00 rollback: start
+2026-10-03T12:57:32-04:00 rollback: done
+2026-10-03T12:59:53-04:00 install-nvidia-repo: start on 7.1.13+deb13-amd64
+2026-10-03T12:59:53-04:00 install-nvidia-repo: installed key, source, pin, modprobe options and udev rule (no sleep hook: 615 uses kernel suspend notifiers)
+2026-10-03T13:02:23-04:00 install-nvidia-repo: packages installed: 615.71.09-2
+nvidia/615.71.09, 7.1.13+deb13-amd64, x86_64: installed
+2026-10-03T13:02:33-04:00 install-nvidia-repo: done; reboot next
+
+=== summary
+FAIL  no DKMS module for 7.1.13+deb13-amd64
+FAIL  modules: nvidia 
+PASS  desktop renders on the AMD GPU
+PASS  offloaded OpenGL runs on NVIDIA
+PASS  PreserveVideoMemoryAllocations=1
+WARN  GPU idle status: before=active after=active (AC=1; TLP forces 'on' on AC)

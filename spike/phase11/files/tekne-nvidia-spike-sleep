@@ -1,0 +1,20 @@
+#!/bin/sh
+# Phase 11 spike (DEC-041): elogind's stand-in for Debian's systemd units
+# nvidia-{suspend,hibernate,resume}.service. elogind runs every executable in
+# /usr/lib/elogind/system-sleep/ with $1 = pre|post and
+# $2 = suspend|hibernate|hybrid-sleep|suspend-then-hibernate.
+# nvidia-sleep.sh does nothing when the NVIDIA module isn't loaded.
+log=/var/log/tekne-nvidia-spike.log
+
+case "$1/$2" in
+	pre/suspend|pre/suspend-then-hibernate) action=suspend ;;
+	pre/hibernate|pre/hybrid-sleep)         action=hibernate ;;
+	post/*)                                 action=resume ;;
+	*)                                      exit 0 ;;
+esac
+
+echo "$(date -Is) sleep hook: $1 $2 -> nvidia-sleep.sh ${action}" >> "${log}"
+/usr/bin/nvidia-sleep.sh "${action}" >> "${log}" 2>&1
+rc=$?
+echo "$(date -Is) sleep hook: exit ${rc}" >> "${log}"
+exit "${rc}"

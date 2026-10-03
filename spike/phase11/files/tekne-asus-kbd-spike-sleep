@@ -1,0 +1,20 @@
+#!/bin/sh
+# Phase 11 spike: the ASUS N-KEY keyboard (ITE 8910, 0b05:19b6) loses hid-asus's
+# setup when the platform reaches s0i3: its controller reboots during sleep
+# (the backlight flashes white), USB doesn't notice, and the keys stay dead.
+# A full USB re-probe redoes the setup; RESET_RESUME doesn't, and it froze X.
+# elogind runs this with $1 = pre|post and $2 = the sleep operation.
+log=/var/log/tekne-nvidia-spike.log
+[ "$1" = post ] || exit 0
+
+for dev in /sys/bus/usb/devices/*; do
+	[ "$(cat "${dev}/idVendor" 2>/dev/null)" = 0b05 ] || continue
+	[ "$(cat "${dev}/idProduct" 2>/dev/null)" = 19b6 ] || continue
+	name=$(basename "${dev}")
+	echo "$(date -Is) asus-kbd hook: $2, re-probing USB ${name}" >> "${log}"
+	echo "${name}" > /sys/bus/usb/drivers/usb/unbind
+	sleep 1
+	echo "${name}" > /sys/bus/usb/drivers/usb/bind
+	echo "$(date -Is) asus-kbd hook: bind exit $?" >> "${log}"
+done
+exit 0
