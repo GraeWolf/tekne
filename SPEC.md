@@ -342,7 +342,199 @@ Phase numbers continue from §7.
 - ✅ The key-rotation steps work against test keys: a system that trusts the old subkey accepts a `tekne-apt-sources` update carrying the new one, then verifies a repository signed with it.
 - ✅ `v0.2` is released through CI (DEC-039), and publishing it updates `excalibur`. On a system freshly installed from the 0.2 ISO, `apt list --upgradable` shows no `tekne-*` packages.
 
-## 9. Notes for Claude Code sessions
+## 9. Tekne 0.3
+
+> **Status:** Agreed by the maintainer on 2026-10-03 (answers in §9.6). The new
+> decisions are DEC-041 (NVIDIA), DEC-042 (autologin) and DEC-043 (the symbols
+> font). DEC-041's design depends on the Phase 11 spike. Nothing is built yet.
+
+### 9.1 Theme: the hybrid-graphics laptop as a daily driver
+
+0.1 made Tekne installable, and 0.2 made it updatable. The development laptop
+runs it every day, and it still has gaps:
+- Its NVIDIA GPU runs on `nouveau` (release candidate gate, §7).
+- It asks for two passwords on every boot: LUKS, then the console login.
+- The bar shows text labels.
+- `nmtui` opens as a tiled window.
+- `~/Documents` and the other user directories don't exist, because nothing runs `xdg-user-dirs-update`. Tekne has no XDG autostart.
+- Some everyday tools are missing.
+
+0.3 is about the machine Tekne already runs on:
+1. The proprietary NVIDIA driver, working the systemd-free way, with suspend, hibernate and power-down of the idle GPU.
+2. One passphrase from power-on to desktop on encrypted installs.
+3. Fixes for the daily annoyances, in the packages that ship the defaults.
+
+The NVIDIA driver is the hard part and gets the most attention. Its suspend and
+hibernate support ships only as systemd units, and nobody has tested it with
+XLibre (DEC-027). The rest is small configuration work that QEMU can test.
+
+### 9.2 Goals
+1. **NVIDIA proprietary driver, opt-in.**
+   - A new `tekne-nvidia` package, published in Tekne's repository, installs Devuan's driver and makes it work without systemd:
+     - suspend and hibernate hooks for elogind
+     - runtime power management, so the discrete GPU sleeps when idle
+     - a PRIME render-offload launcher
+   - The internal display stays on the integrated GPU. If the NVIDIA module fails to build or load, the desktop still works.
+   - Removing the package goes back to `nouveau`.
+2. **Autologin after LUKS.**
+   - On encrypted installs, the LUKS passphrase is the only password needed to reach the desktop. tty1 logs the user in automatically and starts the session. The lock screen, `sudo` and other ttys still ask for the password.
+   - Plain (unencrypted) installs keep the password login.
+   - New installs choose this in the installer. Existing installs, such as the laptop, turn it on with one command.
+3. **Desktop polish** (`tekne-config`, `tekne-desktop`):
+   - **Bar:** Nerd Font icons in the right-hand modules, the clock in the centre, and all nine tags on the left, coloured as active, occupied or empty.
+   - **Floating windows:** `nmtui` and Blueman open as floating, centred windows when launched from the bar.
+   - **Shell:** `bat` instead of `cat`, and `fastfetch` when an interactive terminal opens.
+   - **Session:** the ssh-agent keeps a key once its passphrase is entered, and XDG user directories exist.
+   - **Packages:** `ffmpeg` and `imagemagick` are installed by default.
+
+### 9.3 Not in 0.3
+§1's non-goals still apply. Of the candidates from §8.3, §8.5 and 0.2's known limitations:
+- **Secure Boot (DEC-016).** It already conflicts with hibernation (DEC-017), and a DKMS-built NVIDIA module is unsigned, so Secure Boot would also need a machine-owner key and module signing. Design that once, after the NVIDIA work exists. Adding it first would mean designing it twice.
+- **Manual partitioning and dual-boot (DEC-005).** They multiply the install matrix, and the only real user runs whole-disk LUKS.
+- **Real artwork (DEC-034).** This needs an artist, not engineering. DEC-034 already allows same-named files to replace the placeholders, so the art can arrive in any `tekne-branding` update.
+- **A second machine.** There isn't one. `tekne-nvidia` is the first hardware-specific package, and docs/testing.md gets an NVIDIA section, so other hybrid laptops can report results.
+- **Devuan testing (Freia), and newer alacritty, neovim and fastfetch.** 0.3 uses Excalibur's versions. A newer neovim waits for 0.4 (Q6). See §9.5.
+- **The installer offering the NVIDIA driver.** The driver needs DKMS, a compiler and kernel headers, roughly 90 packages. Shipping them would push the ISO past GitHub's 2 GiB asset limit (DEC-020): the last local build is already 1.85 GiB. Fetching them during install would add a network dependency the installer doesn't have. In 0.3 it's one `apt install` after installing, and the installer prints that hint when it sees an NVIDIA GPU.
+- **DEC-035 (the Devuan console greeting).** The maintainer kept option 1 (Q4), even though autologin edits the same tty1 getty line.
+- **A Bluetooth bar module.** The tray icon is enough (Q5). Blueman's manager window floats and is centred however it's opened.
+
+### 9.4 Proposed design
+
+**NVIDIA (DEC-041).** Findings so far, from apt on the laptop:
+- **Driver version.** "The most current proprietary driver in the Devuan repo" is 550.163.01. It's the only version anywhere in Devuan: Excalibur has `-2`, `excalibur-backports` has `-4~bpo13+1`, and even Debian forky has 550 (`-5.1`). 550 fully supports the laptop's RTX 3060 (Ampere). Newer branches (570 and later) come only from NVIDIA's own repository. That would be a third-party repository under DEC-026, and this proposal doesn't use it.
+- **No systemd packages.** Simulating `apt install nvidia-driver firmware-nvidia-gsp` pulls in 93 packages, including `dkms` and `gcc-14`, and none of them is a systemd package. `xserver-xorg-video-nvidia` resolves against XLibre's packages.
+- **Suspend and hibernate.** `nvidia-suspend-common` ships `nvidia-sleep.sh` but drives it only from systemd units, so on Tekne nothing would call it.
+
+`tekne-nvidia` (Architecture all) would:
+- Depend on `nvidia-driver`, `nvidia-kernel-dkms`, `firmware-nvidia-gsp` and `linux-headers-amd64`. The headers come from backports, through DEC-036's existing pin.
+- Ship an elogind sleep hook, `/usr/lib/elogind/system-sleep/tekne-nvidia`, that calls `nvidia-sleep.sh` around suspend and hibernate. With no NVIDIA module loaded, it does nothing.
+- Ship modprobe options: `NVreg_PreserveVideoMemoryAllocations=1`, a temporary file path on disk, and `NVreg_DynamicPowerManagement=0x02` so the discrete GPU powers off when idle.
+- Ship `tekne-prime-run CMD`, which sets the PRIME offload variables. X stays on `amdgpu`, and NVIDIA is an offload GPU only, so a missing or broken module costs offload, not the desktop.
+- Not be in the ISO and not be installed by default. Users install it with `sudo apt install tekne-nvidia`.
+
+Things that need decisions or a spike:
+- **Which suite.** Backports (Q1). The stable `-2` package may not build against the backports 7.1 kernel (DEC-036), and the `-4~bpo13+1` package probably exists for exactly that. DEC-036's backports pin grows to cover the NVIDIA driver's source packages (`nvidia-graphics-drivers` and the firmware they need). The spike lists the exact binary package names.
+- **XLibre.** NVIDIA support on XLibre is undocumented (DEC-027). If offload or the driver fails on XLibre, the fallback is Devuan's `xserver-xorg`, which also changes a Decided entry. The spike decides before anything is built.
+- **New kernels.** Every backports kernel bump can break the DKMS build. A build-time check compiles the module against the kernel the image ships, so a breaking kernel can't reach a release unnoticed.
+
+**Autologin (DEC-042).**
+- **Where it's set.** `/etc/inittab` isn't a conffile. `sysvinit-core`'s postinst generates it, and the installer already rewrites it (`tekne-install`). For new installs, the installer asks "Log in automatically after unlocking?" when LUKS is chosen and adds `--autologin USER` to tty1's getty line. Existing installs use `tekne-autologin on|off` from `tekne-config`. It refuses unless `/` is on dm-crypt. Package scripts never edit inittab.
+- **Keyring (DEC-030).** With autologin, PAM never sees a password, so the `login` keyring starts locked. The first app that needs a secret (Brave, Melia) asks for the password once per session (Q2). The secrets stay encrypted with the login password, not only by LUKS.
+- **Locking.** `xss-lock` already locks before suspend and hibernate, so resuming still needs the password. Autologin affects only a fresh boot, after the LUKS passphrase.
+- **No restart loop.** A broken X (for example a bad NVIDIA setup) would otherwise loop: startx fails, getty respawns, autologin starts X again. `tekne-startx.sh` stops using `exec`. If X exits with an error within a few seconds, it leaves a marker for the rest of the boot and stays on a console shell. tty2–6 keep normal logins.
+
+**Desktop polish.**
+- **Nerd Font symbols.**
+  - Neither Devuan nor Debian packages Nerd Fonts. The packaged alternatives, `fonts-font-awesome` 4.7 and `fonts-material-design-icons-iconfont`, have the bar's icons but not the wider Nerd Fonts set.
+  - Tekne vendors the Nerd Fonts "Symbols Only" release (MIT licence), pinned by SHA-256 like live-build's `.deb`, into `tekne-config`, with a fontconfig fallback (Q3, DEC-043). That way JetBrains Mono shows the symbols in polybar and alacritty alike.
+- **polybar:**
+  - Icons with no text for volume, Wi-Fi (with the SSID kept), Ethernet, battery (an icon that changes with charge level) and the clock.
+  - `modules-center = date`, and the window title shortened to fit.
+  - `xworkspaces` shows empty tags in `disabled`, occupied tags in `foreground` and the active tag on `primary`. Urgent tags keep `alert`.
+- **Floating windows.**
+  - The bar starts `nmtui` with `tekne-terminal --class tekne-float`.
+  - herbstluftwm rules float and centre `instance=tekne-float`, `class=Blueman-manager` and `class=Pavucontrol`. The bar's right-click on the volume module opens Pavucontrol, so it's included for consistency.
+  - Blueman stays in the tray, with no Bluetooth bar module (Q5). The rule applies however its manager window is opened.
+- **Shell.**
+  - Debian installs `bat` as `batcat`.
+  - `tekne-config` ships `/usr/share/tekne/bash/tekne.bashrc`:
+    - aliases `cat='batcat --paging=never'` and `bat=batcat`
+    - runs `fastfetch` in interactive shells started by `tekne-terminal` (not on ttys, over SSH, or in nested shells)
+    - an opt-out file, like `no-startx`
+  - `/etc/skel/.bash_aliases` sources it, and Debian's default `.bashrc` already reads that file. Existing users add one line, given in the CHANGELOG, because Tekne never writes into an existing home.
+- **fastfetch logo.** fastfetch would show Devuan's logo, because `ID_LIKE=devuan`, and §3.7 removes Devuan logos from user-visible branding. Tekne ships a fastfetch config with a text-art Tekne logo and Tokyo Night colours.
+- **ssh-agent.** It's already running: Devuan's Xsession starts it (`use-ssh-agent` in `/etc/X11/Xsession.options`). What's missing is `AddKeysToAgent yes`, shipped as `/etc/ssh/ssh_config.d/tekne.conf`. A passphrase is then asked once per X session.
+- **XDG user directories.** `xdg-user-dirs` is installed, but its autostart entry is for desktop environments, and herbstluftwm doesn't run it. `tekne-session` runs `xdg-user-dirs-update` at every login. It's idempotent, so new and existing users both get the directories on their next login.
+- **`ffmpeg`, `imagemagick`, `bat` and `fastfetch`.** These are added to `tekne-desktop`'s Depends. All are in Excalibur `main`. The ISO's size increase is measured against DEC-020's limit.
+
+### 9.5 Devuan testing (Freia)
+
+The maintainer asked whether Tekne should move to testing because stable is outdated.
+Recommendation: **not for 0.3, and probably never as the base.** Instead, fix specific
+packages, and prepare for Freia while it's still testing.
+
+What testing would bring today (Debian trixie compared with forky, which is what Excalibur and Freia track):
+- `neovim` 0.10 → 0.12, `alacritty` 0.15 → 0.17, `fastfetch` 2.40 → 2.67.
+- Not the NVIDIA driver (550 in both), `polybar` or `herbstluftwm` (the same versions).
+- Not the kernel or Mesa either: backports already has kernel 7.1 (forky has 7.2) and Mesa 26.1.6 (the same as forky).
+
+What it would cost:
+- **Security.** Debian's security team doesn't support testing. Fixes reach it through unstable, often days or weeks later, and Devuan adds its own lag. That's a poor fit for a daily driver whose firewall and pins are meant to be dependable (DEC-023, DEC-026).
+- **Breakage that lands on Tekne.** Transitions break testing for days at a time. Devuan also has to follow every Debian change towards systemd with a fork, so Freia lags and breaks in ways Excalibur doesn't.
+- **Releases.** A Tekne release would be a snapshot of a moving target, and CI's "repeatable build" (§5.3) would drift daily. The Brave and XLibre repositories would need Freia suites too.
+- **Timing.** Forky is expected to freeze in 2027, and Devuan Freia becomes stable some months after Debian 14. A move made now would have a short life before Freia is stable anyway.
+
+Alternatives, roughly from least to most work:
+1. **Backports, per package**, the way DEC-036 does the kernel: pin named packages from `excalibur-backports` when they're there.
+2. **Upstream releases for one or two tools**, verified and installed on demand, like `tekne-get-melia` (DEC-029).
+3. **A non-blocking CI job that builds and boots Tekne against Freia.** Breakage then shows up early, and moving to Freia when it becomes stable is planned work rather than a surprise. This could become 0.4's theme.
+
+**The packages that matter (Q6): alacritty, neovim and fastfetch.** None of them is in
+`excalibur-backports` (checked 2026-10-03), so option 1 doesn't apply. 0.3 keeps
+Excalibur's versions: fastfetch 2.40 already does what Goal 3 needs. A newer neovim waits
+for 0.4, and how to provide it is decided when 0.4 is planned. The candidates are a
+verified upstream tarball and the Freia CI job. Alacritty has no Linux binaries upstream,
+so it most likely waits for Freia to become stable. The options:
+
+| | Excalibur | Freia | Upstream binaries | Rebuilding Freia's source for Excalibur |
+|---|---|---|---|---|
+| fastfetch | 2.40.4 | 2.67.1 | Yes: a `.deb` per release | Easy: C and CMake |
+| neovim | 0.10.4 | 0.12.4 | Yes: a Linux x86_64 tarball per release | Moderate: newer libuv, LuaJIT and tree-sitter |
+| alacritty | 0.15.1 | 0.17.0 | No Linux binaries | Hard: Debian builds Rust programs from packaged crates, which Excalibur has in older versions |
+
+### 9.6 Maintainer's answers (2026-10-03)
+- **Q1, NVIDIA source:** Devuan's `excalibur-backports`, with DEC-036's pin extended to the driver packages (DEC-041). NVIDIA's own repository was the alternative.
+- **Q2, keyring with autologin:** one password prompt per session, at the first app that needs a secret (DEC-042). An empty-password keyring was the alternative.
+- **Q3, symbols font:** vendor Nerd Fonts' "Symbols Only" font, pinned by checksum (DEC-043). The packaged Font Awesome and Material Design fonts were the alternative.
+- **Q4, DEC-035:** no. The console greeting keeps Devuan's text.
+- **Q5, Bluetooth:** the tray icon is enough.
+- **Q6, testing:** the packages that feel too old are alacritty, neovim and fastfetch. None of them is in backports. 0.3 keeps Excalibur's versions, and neovim waits for 0.4 (§9.5).
+- **Q7, fastfetch and `cat`:** as proposed. fastfetch runs in every new terminal, and `cat` is aliased to `batcat --paging=never`.
+
+### 9.7 Phases and acceptance criteria
+Phase numbers continue from §8.
+
+**Phase 11: Decisions and the NVIDIA spike**
+- DEC-041, DEC-042 and DEC-043, with History lines on the Decided entries they amend (DEC-016, DEC-027, DEC-030, DEC-036, DEC-040). Done 2026-10-03.
+- (maintainer) On the laptop, after a backup, install the NVIDIA driver by hand from `excalibur-backports`. The driver is removable with `apt purge`, and tty2 stays available for recovery.
+- ✅ The DKMS module builds against Tekne's current backports kernel, and `nvidia-smi` sees the GPU.
+- ✅ With XLibre, the desktop stays on the AMD GPU. An offloaded program runs on the NVIDIA GPU: `glxinfo` with the offload variables reports NVIDIA.
+- ✅ Suspend/resume and hibernate/resume work with the module loaded, with the sleep hook driven by elogind. The GPU's runtime status is `suspended` when idle.
+- ✅ External monitors work on every port, including any wired to the NVIDIA GPU.
+
+**Phase 12: Desktop polish**
+- `tekne-config` and `tekne-desktop` changes from §9.2 Goal 3.
+- ✅ Every added package exists in Excalibur and passes the no-systemd check, the vendored font is checksum-pinned (DEC-043), and the ISO stays under 2 GiB.
+- ✅ In the live session, `live-boot.py` checks that:
+  - polybar runs with Tekne's config
+  - `fc-match` finds the symbols font
+  - `/etc/ssh/ssh_config.d/tekne.conf` sets `AddKeysToAgent`
+  - the herbstluftwm rules float and centre `tekne-float`, Blueman's manager and Pavucontrol
+- ✅ On each installed system, `install.py` checks that:
+  - the user's XDG directories exist after the first login
+  - an interactive `tekne-terminal` shell has the `cat` alias
+  - fastfetch shows the Tekne logo, not Devuan's
+- ✅ (maintainer) In QEMU and on the laptop: the bar shows the icons, the centred clock and all nine tags in three states. `nmtui` and Blueman open floating and centred from the bar, and an SSH key's passphrase is asked once per session.
+
+**Phase 13: `tekne-nvidia`**
+- The package from §9.4 (DEC-041), published in Tekne's repository with the other four, and documented in `docs/customizing.md` and docs/testing.md. DEC-036's pin gains the driver packages.
+- ✅ Every build compiles the NVIDIA DKMS module against the kernel the ISO ships, and fails if it doesn't build.
+- ✅ In QEMU (no NVIDIA GPU), installing `tekne-nvidia` on an installed UEFI+LUKS system leaves it booting to the desktop and passing `installed-checks.sh`, hibernate/resume included. Purging it passes the same checks.
+- ✅ (maintainer) On the laptop, `sudo apt install tekne-nvidia` from the repository gives Phase 11's results without any manual step. Purging it brings back `nouveau`.
+
+**Phase 14: Autologin after LUKS**
+- The installer question, `tekne-autologin` and the change to `tekne-startx.sh` (DEC-042). docs/installer.md and docs/desktop-stack.md §2 are updated.
+- ✅ `install.py`'s LUKS cases enable autologin. After the passphrase, the session starts on tty1 with no login, and the lock screen still asks for the password. The plain cases still need a password login and still unlock the keyring through PAM (DEC-030).
+- ✅ `tekne-autologin on` refuses on a system without an encrypted root.
+- ✅ With a deliberately broken X configuration, tty1 starts X at most twice and then stays on a console shell. tty2 still offers a normal login.
+- ✅ (maintainer) On the laptop (0.2, upgraded through apt), `tekne-autologin on` gives one passphrase from power-on to desktop.
+
+**Phase 15: Docs and the 0.3 release**
+- README, `docs/customizing.md` (the shell snippet line for existing users, NVIDIA and autologin), docs/testing.md, and the CHANGELOG.
+- ✅ `v0.3-rc1` is released through CI (DEC-039) and published to `excalibur-rc`. The laptop upgrades to it with `apt upgrade` and is dogfooded.
+- ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.
+
+## 10. Notes for Claude Code sessions
 - Keep SPEC.md and DECISIONS.md current. When a decision's status or content changes, update DECISIONS.md (with a dated History line) and every doc that references its `DEC-nnn` ID in the same commit.
 - Before adding any package, check that it exists in Excalibur and run the no-systemd check. Package names and systemd-free substitutes change between releases.
 - Never download build inputs without pinning them (a checksum or container digest).

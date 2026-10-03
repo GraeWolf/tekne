@@ -117,8 +117,8 @@ When a decision changes, edit the entry in place and add a dated line to its
 ### DEC-016 Secure Boot not supported in v1
 - **Status:** Decided
 - **Why:** It needs Devuan's shim and signed GRUB chain checked for the ISO and for installed systems. Documented as "disable Secure Boot" for v1. Revisit once Phase 3 is stable.
-- **Note:** Secure Boot's kernel lockdown also blocks hibernation (DEC-017), so adding Secure Boot later means solving that too.
-- **History:** 2026-09-28 proposed and confirmed.
+- **Note:** Secure Boot's kernel lockdown also blocks hibernation (DEC-017), so adding Secure Boot later means solving that too. From 0.3, the NVIDIA module that DKMS builds (DEC-041) is unsigned, so Secure Boot would also need a machine-owner key and module signing.
+- **History:** 2026-09-28 proposed and confirmed. 2026-10-03: left out of 0.3 again (SPEC §9.3); added the note about DKMS modules.
 
 ### DEC-017 Swap: swapfile sized for hibernation, hibernation supported
 - **Status:** Decided
@@ -206,9 +206,9 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **Source:** The XLibre Devuan repository (`xlibre-debian.github.io/devuan`). XLibre's docs say Excalibur needs backports, but Phase 2 builds resolve without them. Its packages are signed by an individual volunteer's key (DEC-026 applies). Devuan maintainers are working on first-party packages. Switch to those when they reach Devuan stable.
 - **Risks:**
   - It depends on a volunteer-run repository.
-  - Compatibility with the proprietary NVIDIA driver is undocumented.
+  - Compatibility with the proprietary NVIDIA driver is undocumented. The 0.3 spike tests it (DEC-041, SPEC §9 Phase 11).
   - The fallback is Devuan's `xserver-xorg`, a package-list change only.
-- **History:** 2026-09-28 decided (maintainer edit to desktop-stack.md). 2026-09-29: verified on the development laptop (AMD GPU on the internal and an external display, with the NVIDIA GPU on `nouveau`).
+- **History:** 2026-09-28 decided (maintainer edit to desktop-stack.md). 2026-09-29: verified on the development laptop (AMD GPU on the internal and an external display, with the NVIDIA GPU on `nouveau`). 2026-10-03: NVIDIA compatibility is to be tested in 0.3's Phase 11 (DEC-041). If it fails, the fallback above comes back to the maintainer.
 
 ### DEC-028 Browsers: Brave Origin (default) + Firefox ESR (fallback)
 - **Status:** Decided
@@ -241,7 +241,8 @@ When a decision changes, edit the entry in place and add a dated line to its
   - Excalibur's `libpam-gnome-keyring` profile only handles password changes; Debian relies on display managers adding `pam_gnome_keyring` to their own PAM files, and Tekne has none (DEC-014). So `tekne-config` ships the `pam-auth-update` profile `tekne-gnome-keyring`: auth and session lines with `only_if=login`, so `sudo` and `su` never start keyring daemons for root.
   - It has priority -1, so it comes after `pam_elogind` (priority 0), which sets up the `XDG_RUNTIME_DIR` the daemon needs. `pam-auth-update` breaks priority ties by reverse name, which would otherwise put it first.
   - `tests/smoke/install.py` checks, on each installed system after a password login, that the daemon runs, the `login` keyring exists, and the PAM order is right.
-- **History:** 2026-09-28 decided. 2026-09-29 (Phase 3): the maintainer's QEMU test found the keyring asking to be created at first login and to be unlocked at the next; added the `satori-gnome-keyring` PAM profile.
+  - **With autologin** (DEC-042, encrypted installs only), PAM gets no password, so the `login` keyring starts locked. The first app that needs a secret asks for the password once per session. The keyring stays encrypted with the login password.
+- **History:** 2026-09-28 decided. 2026-09-29 (Phase 3): the maintainer's QEMU test found the keyring asking to be created at first login and to be unlocked at the next; added the `satori-gnome-keyring` PAM profile. 2026-10-03: the maintainer chose one unlock prompt per session under autologin (DEC-042) over an empty-password keyring.
 
 ### DEC-031 Build container: pinned Devuan image, rootful Podman or Docker
 - **Status:** Decided
@@ -306,7 +307,8 @@ When a decision changes, edit the entry in place and add a dated line to its
   - `tests/smoke/install.py` checks installed systems run the backports kernel.
 - **Trade-offs:** Debian's security team doesn't formally cover backports; the kernel team updates backports kernels, usually shortly after stable. A new kernel series arrives every few months, so there's more change than on stable; the QEMU install tests (including hibernate/resume) are the guard. Firmware stays at stable's versions.
 - **Fallback:** removing the pin and reinstalling `linux-image-amd64` from stable is a package change only.
-- **History:** 2026-09-30 decided by the maintainer, after the backports kernel fixed the development laptop's keyboard.
+- **NVIDIA (from 0.3):** the pin also covers the NVIDIA driver packages that `tekne-nvidia` depends on (DEC-041), because the backports driver is the one built for the backports kernel. The exact package names come from the 0.3 spike. They're installed only on systems that install `tekne-nvidia`.
+- **History:** 2026-09-30 decided by the maintainer, after the backports kernel fixed the development laptop's keyboard. 2026-10-03: the maintainer agreed to extend the pin to the NVIDIA driver packages for `tekne-nvidia` (DEC-041). It takes effect when that package is built (SPEC §9 Phase 13).
 
 ### DEC-037 Styled text boot and LUKS prompt
 - **Status:** Decided
@@ -352,7 +354,7 @@ When a decision changes, edit the entry in place and add a dated line to its
   - `tekne-apt-sources` ships its public key, checked against `keys/SHA256SUMS`.
   - Its `.sources` entry uses `Signed-By` with that key alone.
   - An `/etc/apt/preferences.d/` pin, `tekne.pref`, limits it to `tekne-*` packages. Everything else from it gets priority -1. The pin matches the repository's signed `Origin: Tekne` (`o=Tekne`) rather than its host name, so the tests can serve the repository from anywhere and still exercise the shipped pin.
-  - It carries `tekne-apt-sources`, `tekne-branding`, `tekne-config` and `tekne-desktop`. `tekne-installer` belongs only in the live image, and Devuan packages are never mirrored.
+  - It carries `tekne-apt-sources`, `tekne-branding`, `tekne-config` and `tekne-desktop`. `tekne-installer` belongs only in the live image, and Devuan packages are never mirrored. From 0.3 it also carries `tekne-nvidia` (DEC-041), which is published but not in the ISO.
 - **Hosting:** GitHub Pages for this repository, next to the releases (DEC-020). The four packages total about 350 KB per release. Installed systems contact GitHub on `apt update`, as they already do for XLibre's repository. The URL is written into every installed system, so moving it later needs a `tekne-apt-sources` update that runs while the old URL still answers.
 - **Suites** (one `main` component each):
   - `excalibur`: releases. `tekne-apt-sources` points here.
@@ -382,4 +384,41 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **Alternatives:**
   - Sign `InRelease` locally with the offline key, with CI only uploading. That keeps the key off GitHub entirely, but every release needs a manual signing step.
   - A domain of the maintainer's own pointed at Pages, so the hosting could move without touching installed systems. Not wanted for now.
-- **History:** 2026-10-01 proposed (SPEC §8) and decided by the maintainer: a CI-held signing subkey behind an approval gate, the `github.io` address, and a pre-release suite. 2026-10-02: the maintainer created the key, moved the primary key offline, and set up the `repo-publish` environment, its secrets and Pages; the fingerprints are recorded above. Same day, the first signing subkey (`0565…`) was exposed: a terminal read in a Claude Code session returned its passphrase-protected private block into the session transcript. It had signed nothing, and nothing trusted it yet. The maintainer revoked it (reason: compromised), added `82C3…` from the offline primary, changed the passphrase on all keys, and replaced both CI secrets. This was a first run of the rotation steps. Same day (Phase 8): implemented, with the pin on `o=Tekne`, the build isolation through `config/apt/apt.conf`, and publishing split into `sign` and `deploy` jobs. 2026-10-03: 0.2-rc1 and then 0.2 published; GitHub renamed the rc's `.deb` assets (`~` to `.`), as anticipated. The development laptop moved from 0.1 through both with apt.
+- **History:** 2026-10-01 proposed (SPEC §8) and decided by the maintainer: a CI-held signing subkey behind an approval gate, the `github.io` address, and a pre-release suite. 2026-10-02: the maintainer created the key, moved the primary key offline, and set up the `repo-publish` environment, its secrets and Pages; the fingerprints are recorded above. Same day, the first signing subkey (`0565…`) was exposed: a terminal read in a Claude Code session returned its passphrase-protected private block into the session transcript. It had signed nothing, and nothing trusted it yet. The maintainer revoked it (reason: compromised), added `82C3…` from the offline primary, changed the passphrase on all keys, and replaced both CI secrets. This was a first run of the rotation steps. Same day (Phase 8): implemented, with the pin on `o=Tekne`, the build isolation through `config/apt/apt.conf`, and publishing split into `sign` and `deploy` jobs. 2026-10-03: 0.2-rc1 and then 0.2 published; GitHub renamed the rc's `.deb` assets (`~` to `.`), as anticipated. The development laptop moved from 0.1 through both with apt. Same day: the maintainer agreed SPEC §9 (0.3), which adds `tekne-nvidia` to the repository (DEC-041).
+
+### DEC-041 NVIDIA proprietary driver: opt-in `tekne-nvidia`
+- **Status:** Decided, pending the Phase 11 spike (SPEC §9)
+- **What:** `tekne-nvidia` installs Devuan's proprietary NVIDIA driver and makes it work without systemd. It's published in Tekne's repository (DEC-040), not in the ISO and not installed by default. Users install it with `sudo apt install tekne-nvidia`, and purging it returns to `nouveau`.
+- **Why:**
+  - The development laptop's discrete GPU (RTX 3060, Ampere) runs on `nouveau`.
+  - Debian's driver handles suspend and hibernate only through systemd units, so on Tekne nothing would call `nvidia-sleep.sh`.
+  - Installing the driver pulls in DKMS, a compiler and kernel headers, about 90 packages. That's too much to add to an ISO already at 1.85 GiB of GitHub's 2 GiB limit (DEC-020), and the installer needs no network (DEC-006).
+- **Version:** 550.163.01, the only branch in Devuan (and in Debian up to forky). It comes from `excalibur-backports` (`-4~bpo13+1` when decided), the build meant for the backports kernel, under DEC-036's pin. NVIDIA's own repository (570 and later) was the alternative, and would have been a third-party repository under DEC-026.
+- **Design:**
+  - Depends on `nvidia-driver`, `nvidia-kernel-dkms`, `firmware-nvidia-gsp` and `linux-headers-amd64`. Simulating the install on Excalibur pulled in no systemd package.
+  - An elogind sleep hook, `/usr/lib/elogind/system-sleep/tekne-nvidia`, calls `nvidia-sleep.sh` around suspend and hibernate. With no NVIDIA module loaded, it does nothing.
+  - Modprobe options: `NVreg_PreserveVideoMemoryAllocations=1`, a temporary file path on disk, and `NVreg_DynamicPowerManagement=0x02`, so the idle GPU powers off.
+  - `tekne-prime-run CMD` runs a program on the NVIDIA GPU (PRIME render offload). X stays on the integrated GPU, so a missing or broken module costs offload, not the desktop.
+  - Every build compiles the DKMS module against the kernel the ISO ships, so a backports kernel that breaks the driver can't reach a release unnoticed.
+  - The installer prints a hint when it sees an NVIDIA GPU, but doesn't install the driver.
+- **Spike (SPEC §9 Phase 11):** the design stands if, on the laptop, the backports driver builds against Tekne's kernel and works with XLibre (DEC-027) for offload, suspend, hibernate and runtime power-down. If XLibre doesn't work with it, the X server question goes back to the maintainer.
+- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q1: backports).
+
+### DEC-042 Autologin after LUKS
+- **Status:** Decided
+- **What:** on encrypted installs, tty1 logs the user in after the LUKS passphrase and starts the X session, so one passphrase reaches the desktop. Plain installs keep the password login (DEC-014). The lock screen, `sudo` and the other ttys still ask for the password.
+- **How:**
+  - `/etc/inittab` isn't a conffile: `sysvinit-core`'s postinst generates it, and the installer already rewrites it. For new installs, the installer asks whether to log in automatically when LUKS is chosen, and adds `--autologin USER` to tty1's getty line. Existing installs use `tekne-autologin on|off` (`tekne-config`), which refuses unless `/` is on dm-crypt. Package scripts never edit inittab.
+  - `tekne-startx.sh` no longer uses `exec startx`. If X exits with an error within a few seconds, it leaves a marker for the rest of the boot and stays on a console shell, so a broken X can't loop through autologin.
+  - The keyring starts locked and asks for the password once per session (DEC-030).
+  - `xss-lock` locks before suspend and hibernate, so resuming still needs the password.
+- **Not changed:** the console greeting stays Devuan's (DEC-035).
+- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q2: one keyring prompt; Q4: no change to DEC-035).
+
+### DEC-043 Symbols font: vendored Nerd Fonts "Symbols Only"
+- **Status:** Decided
+- **What:** `tekne-config` ships Nerd Fonts' "Symbols Only" font, from an upstream release pinned by SHA-256 and checked when the package is built. A fontconfig fallback makes its symbols available after JetBrains Mono, in polybar and alacritty alike. polybar's right-hand modules use its icons instead of text.
+- **Why:** neither Devuan nor Debian packages Nerd Fonts. The packaged `fonts-font-awesome` (4.7) and `fonts-material-design-icons-iconfont` cover the bar but not the wider set that terminal tools use.
+- **License:** MIT, with the bundled icon sets under their own permissive licences. All are recorded in `tekne-config`'s `debian/copyright`. The font isn't Tekne's artwork, so it stays out of `branding/` (DEC-034).
+- **Updating:** change the version and checksum in one commit, and note it in CHANGELOG.md, as for DEC-031's pins.
+- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q3).
