@@ -9,7 +9,7 @@ and [DECISIONS.md](../DECISIONS.md).
 
 - A Linux host with root, Podman or Docker, and about 20 GB free. The build
   itself runs in a container, so the host distribution doesn't matter.
-- Network access to Devuan's mirror and the Brave and XLibre repositories.
+- Network access to Devuan's mirror and the Brave, XLibre and NVIDIA repositories. NVIDIA's is used only for the module check after the image is built (step 6).
 - For the tests: QEMU and OVMF, and ideally KVM (`/dev/kvm`).
 
 On Tekne, or any Devuan or Debian host, one command installs all of it
@@ -58,6 +58,13 @@ run use the host's network, so the host's firewall can't get in the way.
 5. **No-systemd check.** `scripts/check-no-systemd.sh` checks the package
    manifest against SPEC §4 and `tests/systemd-allowlist.txt` (which is
    empty).
+6. **NVIDIA module check (DEC-041).** `scripts/check-nvidia-dkms.sh` compiles
+   NVIDIA's open kernel module, as `tekne-nvidia` would install it, against the
+   kernel the image ships. It installs that kernel's headers from backports and
+   downloads `nvidia-kernel-open-dkms` through NVIDIA's repository, with
+   `tekne-nvidia-repo`'s key and pin. This changes the build container only, never
+   the image. If the module doesn't build, the build fails, so a backports kernel
+   that breaks the driver can't reach a release. It takes about 2 minutes.
 
 ### Outputs
 
@@ -68,7 +75,7 @@ In `out/`, with the build's version in each name:
 | `tekne-<version>-amd64.iso` | Hybrid ISO, BIOS and UEFI (Secure Boot off) |
 | `tekne-<version>-amd64.iso.sha256` | Checksum |
 | `tekne-<version>-amd64.packages` | Package manifest |
-| `build-info.txt` | Git commit, dirty flag, base image digest, build image, live-build version, ISO size and checksum, and a `deb:` line with each `.deb`'s SHA-256 |
+| `build-info.txt` | Git commit, dirty flag, base image digest, build image, live-build version, ISO size and checksum, the NVIDIA module check (`nvidia_dkms: VERSION KERNEL`), and a `deb:` line with each `.deb`'s SHA-256 |
 | `build.log` | Full log |
 | `packages/` | Tekne's `.deb`s |
 | `test-repo/` | A test APT repository of this build's packages and a decoy, signed with a throwaway key made for this build (`test-key.gpg`), plus a second throwaway key (`wrong-key.gpg`). For `repo.py` (DEC-040). |
@@ -246,7 +253,8 @@ tested tag (DEC-039).
    that CHANGELOG.md has the version's section, and that Tekne's `.deb`s match
    the checksums in `build-info.txt`. Then it creates a **draft** release with
    the ISO, `.sha256`, `.packages`, `build-info.txt` and the `.deb`s (all but
-   `tekne-installer`), and the CHANGELOG section as notes. Tags with a `-` are
+   `tekne-installer`, including the opt-in `tekne-nvidia-repo` and
+   `tekne-nvidia`, which aren't in the ISO), and the CHANGELOG section as notes. Tags with a `-` are
    marked as pre-releases.
 4. Review the draft on GitHub and press "Publish".
 5. Publishing starts `.github/workflows/publish-repo.yml` (DEC-040), which

@@ -69,6 +69,13 @@ cp live-image-amd64.packages "/out/${NAME}.packages"
 echo "==> Checking the no-systemd rule (SPEC.md §4)" | tee -a /out/build.log
 /src/scripts/check-no-systemd.sh "/out/${NAME}.packages" 2>&1 | tee -a /out/build.log
 
+# DEC-041: NVIDIA's open module (tekne-nvidia's driver) must build for the
+# kernel this image ships. A failure fails the build, so a backports kernel
+# that breaks the driver can't reach a release unnoticed.
+echo "==> Building NVIDIA's open module for the image's kernel (DEC-041)" | tee -a /out/build.log
+NVIDIA_DKMS="$(/src/scripts/check-nvidia-dkms.sh "/out/${NAME}.packages" 2> >(tee -a /out/build.log >&2))"
+echo "${NVIDIA_DKMS}" | tee -a /out/build.log
+
 cp live-image-amd64.hybrid.iso "/out/${NAME}.iso"
 (cd /out && sha256sum "${NAME}.iso" > "${NAME}.iso.sha256")
 
@@ -85,6 +92,7 @@ iso: ${NAME}.iso
 iso_size_bytes: $(stat -c %s "/out/${NAME}.iso")
 iso_sha256: $(cut -d' ' -f1 "/out/${NAME}.iso.sha256")
 packages: $(wc -l < "/out/${NAME}.packages")
+${NVIDIA_DKMS}
 EOF
 # One line per Tekne .deb, "deb: FILE SHA256". CI's release and publishing
 # jobs check the .debs they publish against these (DEC-040).

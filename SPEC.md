@@ -128,7 +128,7 @@ The version comes from the `VERSION` file. A clean checkout of tag `v<VERSION>` 
 Output goes to `out/` (git-ignored):
 - `tekne-<version>-amd64.iso` and `.sha256`
 - `tekne-<version>-amd64.packages`: the package manifest
-- `build-info.txt`: git SHA, dirty flag, build date, base image digest, build image ID, live-build version, ISO size and checksum, package count, and each Tekne `.deb`'s SHA-256 (DEC-040)
+- `build-info.txt`: git SHA, dirty flag, build date, base image digest, build image ID, live-build version, ISO size and checksum, package count, the NVIDIA module check (DEC-041), and each Tekne `.deb`'s SHA-256 (DEC-040)
 - `build.log`: the full live-build log
 - `packages/`: Tekne's `.deb`s
 - `test-repo/`: a test copy of Tekne's APT repository, signed with a throwaway key made for this build, for `tests/smoke/repo.py` (DEC-040)
