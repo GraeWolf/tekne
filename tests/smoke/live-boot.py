@@ -9,7 +9,8 @@ entry, logs in as the live user, and checks SPEC.md §4 rule 1: PID 1 is
 sysvinit's init and /run/systemd/system doesn't exist. It then waits for the
 autologin desktop on tty1 and checks that the X server and every session
 component in DESKTOP_PROCESSES is running (Phase 2), that Tekne's firewall is
-loaded, and that nothing listens beyond loopback (DEC-023). Serial logs are
+loaded, that nothing listens beyond loopback (DEC-023), and that X took its
+seat from elogind (DEC-045). Serial logs are
 written to out/serial-<mode>.log. Exits non-zero if any mode fails.
 """
 import os
@@ -48,6 +49,8 @@ CHECK_CMD = (
     # DEC-023: Tekne's firewall is loaded, and nothing listens beyond loopback.
     # DEC-034: the live system identifies as Tekne.
     'echo "OS_ID=$(. /etc/os-release && echo $ID)"; '
+    # DEC-045: X took its seat from elogind (libseat's logind backend).
+    'grep -q "Seat opened with backend .logind." ~/.local/state/xorg/Xorg.0.log && echo SEAT=logind || echo SEAT=other; '
     'sudo nft list chain inet tekne input 2>/dev/null | grep -q "policy drop" && echo FIREWALL=loaded || echo FIREWALL=missing; '
     "sudo ss -H -tuln | awk '{print $5}' | grep -v -E '^(127\\.|\\[::1\\]|\\[::ffff:127\\.)' | sed 's/^/LISTEN=/'; "
     'echo __TEKNE""_END__\n'
@@ -96,10 +99,11 @@ def run(mode, iso):
     print(f"[{mode}] desktop processes not running: {', '.join(down) or 'none'}")
     print(f"[{mode}] firewall: {results.get('FIREWALL')}")
     print(f"[{mode}] os-release ID: {results.get('OS_ID')}")
+    print(f"[{mode}] X seat backend: {results.get('SEAT')}")
     print(f"[{mode}] listening beyond loopback: {', '.join(listening) or 'none'}")
     ok = (results.get("PID1") == "init" and results.get("RUN_SYSTEMD") == "absent" and not down
           and results.get("FIREWALL") == "loaded" and not listening
-          and results.get("OS_ID") == "tekne")
+          and results.get("OS_ID") == "tekne" and results.get("SEAT") == "logind")
     print(f"{'PASS' if ok else 'FAIL'} [{mode}] (serial log: {log_path})")
     return ok
 

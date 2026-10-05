@@ -7,7 +7,8 @@
 override_dh_installinit:
 	dh_installinit --name=tekne-firewall
 
-# Keep the helper scripts and autostart executable.
+# Keep the helper scripts, autostart and elogind sleep hooks executable.
 execute_after_dh_fixperms:
 	chmod 0755 debian/tekne-config/usr/bin/* \
-		debian/tekne-config/usr/share/tekne/herbstluftwm/autostart
+		debian/tekne-config/usr/share/tekne/herbstluftwm/autostart \
+		debian/tekne-config/usr/libexec/system-sleep/*

@@ -58,4 +58,13 @@ case "${locked}" in
 	*)     echo "LOGIN_KEYRING=missing" ;;
 esac
 echo "FIREWALL=$(nft list chain inet tekne input 2>/dev/null | grep -q 'policy drop' && echo loaded || echo missing)"
+# Resume fixes (SPEC §9.4). DEC-045: tty1's startx gets libseat's logind
+# backend. DEC-044: the ASUS keyboard hook does nothing without that keyboard.
+# DEC-025: TLP's sleep hook runs from the directory Devuan's elogind reads.
+echo "SEAT_BACKEND=$(sed -n 's/.*export LIBSEAT_BACKEND="\${LIBSEAT_BACKEND:-\([a-z]*\)}".*/\1/p' /etc/profile.d/tekne-startx.sh)"
+kmsg_before="$(dmesg | grep -c tekne-asus-keyboard)"
+/usr/libexec/system-sleep/tekne-asus-keyboard post suspend
+hook_rc=$?
+echo "ASUS_KBD_HOOK=$([ "${hook_rc}" = 0 ] && [ "$(dmesg | grep -c tekne-asus-keyboard)" = "${kmsg_before}" ] && echo idle || echo acted)"
+echo "TLP_SLEEP_HOOK=$([ -x /usr/libexec/system-sleep/49-tekne-tlp ] && [ -x /usr/lib/elogind/system-sleep/49-tlp-sleep ] && echo linked || echo missing)"
 echo "GRUB_PKG=$(dpkg-query -W -f '${Package} ${db:Status-Status}\n' grub-pc grub-efi-amd64 2>/dev/null | awk '$2 == "installed" { print $1 }')"

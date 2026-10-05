@@ -26,7 +26,7 @@ and configured by `tekne-config`.
 | Network UI | `network-manager` (`nmcli`, `nmtui`) | DEC-011. No tray applet. Clicking polybar's network module opens `nmtui` in a terminal |
 | Audio | `pipewire`, `pipewire-pulse`, `wireplumber`, `pavucontrol`, `pamixer` | DEC-012 |
 | Bluetooth | `bluez`, `blueman` | |
-| Power/laptop | elogind (lid/suspend/hibernate, DEC-017), `brightnessctl`, `tlp` | Check that tlp has no systemd dependency |
+| Power/laptop | elogind (lid/suspend/hibernate, DEC-017), `brightnessctl`, `tlp` | tlp has no systemd dependency. Its sleep hook is in a directory Devuan's elogind doesn't read, so tekne-config's `/usr/libexec/system-sleep/49-tekne-tlp` runs it (DEC-025) |
 | Terminal | `alacritty` | Started through `tekne-terminal`, Tekne's `x-terminal-emulator` alternative, which adds Tekne's config (DEC-034) |
 | File manager | `thunar` + `gvfs`, `tumbler` | Removable media and trash. `tumbler` provides Thunar's thumbnails |
 | Editor | `neovim` (CLI) + `mousepad` (GUI) | |
@@ -49,7 +49,8 @@ With no systemd user services, the X session itself starts everything. It uses
 Debian's standard `startx` → `Xsession` path, so a user's own `~/.xinitrc` or
 `~/.xsession` still takes precedence. Order matters:
 
-1. **tty1 login.** `/etc/profile.d/tekne-startx.sh` runs `exec startx` on tty1 if
+1. **tty1 login.** `/etc/profile.d/tekne-startx.sh` exports `LIBSEAT_BACKEND=logind`
+   (unless already set) and runs `exec startx` on tty1 if
    `$DISPLAY` is unset. To opt out, a user creates `~/.config/tekne/no-startx`. In the
    live session, Tekne's live-config component `0161-tekne-autologin` adds agetty's
    `--autologin` to the tty1–6 gettys. live-config's own `0160-sysvinit` component never
@@ -77,6 +78,21 @@ conffile. Tekne never overwrites or diverts those files. It passes its own files
 `/usr/share/tekne/` with each program's config option, or uses a place the program reads
 in addition to its own file: `/etc/xdg/dunst/dunstrc.d/` for dunst, `/etc/rofi.rasi` for
 rofi.
+
+### Seat and sleep hooks
+- **Seat (DEC-045).** XLibre opens its DRM and input devices through libseat. With
+  `LIBSEAT_BACKEND=logind` it takes them from elogind, which also manages Tekne's
+  sessions, instead of from seatd (installed because `libseat1` depends on
+  `seatd | logind`). Under seatd, X sometimes didn't get its seat back after a
+  suspend's VT switch, which the NVIDIA driver forces on every suspend.
+- **Sleep hooks.** Devuan's elogind runs executables in `/usr/libexec/system-sleep/`
+  (and `/etc/elogind/system-sleep/`) with `pre`/`post` and the sleep operation, not in
+  `/usr/lib/elogind/system-sleep/`. tekne-config ships two there:
+  - `49-tekne-tlp` runs tlp's own hook (`tlp suspend` / `tlp resume`), which tlp
+    installs where elogind doesn't look (DEC-025).
+  - `tekne-asus-keyboard` re-probes the ASUS N-KEY keyboard (`0b05:19b6`) after resume,
+    because deep sleep resets its controller. It does nothing on other machines
+    (DEC-044).
 
 ## 3. Keybindings (defaults)
 

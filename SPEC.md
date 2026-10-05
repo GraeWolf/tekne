@@ -425,7 +425,7 @@ Every build compiles NVIDIA's open module against the kernel the ISO ships, so a
 **Resume fixes from the spike (all installs).**
 - **X's seat backend (DEC-045).** NVIDIA forces a VT switch on every suspend. Under seatd, X sometimes never got its seat back (2 of 4 hibernates froze its input), while with libseat's logind backend 5 of 5 resumes worked. `tekne-startx.sh` exports `LIBSEAT_BACKEND=logind`.
 - **ASUS keyboard after deep sleep (DEC-044).** s0i3 reboots the ITE 8910 keyboard's controller (`0b05:19b6`). An elogind hook in `/usr/libexec/system-sleep/` re-probes that device after resume, and does nothing on other machines.
-- **TLP's sleep hook (DEC-025).** `tlp` puts it in `/usr/lib/elogind/system-sleep/`, which Devuan's elogind never reads. `tekne-config` links it into `/usr/libexec/system-sleep/`.
+- **TLP's sleep hook (DEC-025).** `tlp` puts it in `/usr/lib/elogind/system-sleep/`, which Devuan's elogind never reads. `tekne-config` runs it from `/usr/libexec/system-sleep/49-tekne-tlp`, a wrapper that does nothing without tlp.
 
 **Autologin (DEC-042).**
 - **Where it's set.** `/etc/inittab` isn't a conffile. `sysvinit-core`'s postinst generates it, and the installer already rewrites it (`tekne-install`). For new installs, the installer asks "Log in automatically after unlocking?" when LUKS is chosen and adds `--autologin USER` to tty1's getty line. Existing installs use `tekne-autologin on|off` from `tekne-config`. It refuses unless `/` is on dm-crypt. Package scripts never edit inittab.
@@ -530,12 +530,13 @@ Phase numbers continue from §8.
   - `fc-match` finds the symbols font
   - `/etc/ssh/ssh_config.d/tekne.conf` sets `AddKeysToAgent`
   - the herbstluftwm rules float and centre `tekne-float`, Blueman's manager and Pavucontrol
+  - X logged "Seat opened with backend 'logind'" (DEC-045). Installed systems run no X during the tests, so this is checked in the live session
 - ✅ On each installed system, `install.py` checks that:
   - the user's XDG directories exist after the first login
   - an interactive `tekne-terminal` shell has the `cat` alias
   - fastfetch shows the Tekne logo, not Devuan's
-  - X logs "Seat opened with backend 'logind'" (DEC-045), and the existing hibernate/resume checks still pass
-  - `/usr/libexec/system-sleep/` has TLP's hook link and the ASUS keyboard hook, which does nothing in QEMU (no such device)
+  - tty1's `startx` gets `LIBSEAT_BACKEND=logind` (DEC-045), and the existing hibernate/resume checks still pass
+  - `/usr/libexec/system-sleep/` has TLP's hook wrapper and the ASUS keyboard hook, which does nothing in QEMU (no such device)
 - ✅ (maintainer) In QEMU and on the laptop: the bar shows the icons, the centred clock and all nine tags in three states. `nmtui` and Blueman open floating and centred from the bar, and an SSH key's passphrase is asked once per session.
 - ✅ (maintainer) On the laptop, with the spike's `~/.xserverrc` and hooks removed and the packaged ones installed, suspend and hibernate resume with a working internal keyboard. The `hid-asus` report has been filed.
 

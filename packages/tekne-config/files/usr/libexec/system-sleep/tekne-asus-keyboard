@@ -1,0 +1,20 @@
+#!/bin/sh
+# Tekne hardware quirk (DEC-044): the ASUS N-KEY keyboard (ITE 8910, USB
+# 0b05:19b6) loses hid-asus's setup when the platform reaches s0i3. Its
+# controller reboots during sleep (the backlight flashes white), USB resumes it
+# as if nothing happened, and its keys stay dead. A full re-probe of the USB
+# device brings it back; usbcore's RESET_RESUME quirk doesn't.
+# elogind runs this with $1 = pre|post and $2 = the sleep operation. On
+# machines without this keyboard it does nothing.
+[ "$1" = post ] || exit 0
+
+for dev in /sys/bus/usb/devices/*; do
+	[ "$(cat "${dev}/idVendor" 2>/dev/null)" = 0b05 ] || continue
+	[ "$(cat "${dev}/idProduct" 2>/dev/null)" = 19b6 ] || continue
+	name="${dev##*/}"
+	echo "tekne-asus-keyboard: re-probing USB ${name} after $2" > /dev/kmsg
+	echo "${name}" > /sys/bus/usb/drivers/usb/unbind
+	sleep 1
+	echo "${name}" > /sys/bus/usb/drivers/usb/bind
+done
+exit 0

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Tekne (DEC-025): run TLP's sleep hook. tlp installs it in
+# /usr/lib/elogind/system-sleep/, but Devuan's elogind runs hooks only from
+# /usr/libexec/system-sleep/ and /etc/elogind/system-sleep/, so it never ran.
+# Does nothing if tlp is removed, or once tlp ships its hook here itself.
+tlp_hook=/usr/lib/elogind/system-sleep/49-tlp-sleep
+[ -e /usr/libexec/system-sleep/49-tlp-sleep ] && exit 0
+[ -x "${tlp_hook}" ] || exit 0
+exec "${tlp_hook}" "$@"

@@ -72,6 +72,7 @@ def expected(mode, luks):
         "GRUB_PKG": "grub-efi-amd64" if mode == "uefi" else "grub-pc",
         "HIBERNATE": "resumed",
         "KEYRING_DAEMON": "running", "LOGIN_KEYRING": "unlocked", "PAM_ORDER": "ok",
+        "SEAT_BACKEND": "logind", "ASUS_KBD_HOOK": "idle", "TLP_SLEEP_HOOK": "linked",
     }
 
 

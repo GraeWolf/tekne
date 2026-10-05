@@ -11,3 +11,4 @@ files/etc/rofi.rasi etc/
 files/etc/xdg/dunst/dunstrc.d/50-tekne.conf etc/xdg/dunst/dunstrc.d/
 files/etc/xdg/gtk-3.0/settings.ini etc/xdg/gtk-3.0/
 files/etc/xdg/gtk-4.0/settings.ini etc/xdg/gtk-4.0/
+files/usr/libexec/system-sleep/* usr/libexec/system-sleep/
