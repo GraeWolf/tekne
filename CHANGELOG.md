@@ -22,6 +22,12 @@ Work towards Tekne 0.3, "the hybrid-graphics laptop as a daily driver" (SPEC §9
 - **XDG user directories** (Documents, Downloads, ...): created by the
   installer, and by `tekne-session` at each login if they're missing.
 - **Packages:** `bat`, `fastfetch`, `ffmpeg`, `imagemagick`, `openssh-client`.
+- **NVIDIA's driver, opt-in** (DEC-041): `tekne-nvidia-repo` adds NVIDIA's
+  repository, pinned to the display driver, and `tekne-nvidia` installs the driver
+  (615, open kernel modules, Turing and newer) with PRIME offload
+  (`tekne-prime-run`), power-off of the idle GPU, and suspend and hibernate
+  without systemd. Neither is in the ISO; docs/customizing.md has the three
+  commands. Every build checks that NVIDIA's module builds for its kernel.
 
 ### Fixed
 - **Resume:** X now takes its seat from elogind rather than seatd

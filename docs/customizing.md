@@ -109,11 +109,46 @@ sudo apt install linux-image-amd64/excalibur
 Keep the backports kernel installed until the stable one has booted
 successfully; GRUB lists both under "Advanced options".
 
+### NVIDIA graphics
+
+Tekne uses the open `nouveau` driver for NVIDIA GPUs. For NVIDIA's own driver,
+with PRIME offload on hybrid laptops and the GPU powered off when idle, install
+it from NVIDIA's repository (DEC-041). It supports Turing (GTX 16xx, RTX 20xx)
+and newer GPUs, and needs Secure Boot off (DEC-016), like Tekne itself:
+
+```sh
+sudo apt install tekne-nvidia-repo
+sudo apt update
+sudo apt install tekne-nvidia
+```
+
+`tekne-nvidia-repo` adds NVIDIA's repository, pinned to the driver's own
+packages (DEC-026). Systems without it never contact NVIDIA. `tekne-nvidia`
+installs the driver and builds its kernel module with DKMS, which takes a few
+minutes and needs about 1 GiB, then sets it up for Tekne. Reboot afterwards.
+
+- The desktop stays on the integrated GPU. To run a program on the NVIDIA GPU:
+  `tekne-prime-run PROGRAM`, for example `tekne-prime-run glxinfo -B`.
+- Each new kernel from `apt upgrade` gets the module rebuilt by DKMS. Tekne's
+  build checks that NVIDIA's module builds for every kernel it ships.
+- Suspend and hibernate work through the driver itself, with no extra setup.
+- Known limitations: on AC power the GPU stays on, because TLP keeps devices
+  powered when plugged in. Outputs wired to the NVIDIA GPU (often HDMI) don't
+  work yet; outputs on the integrated GPU do.
+
+To go back to `nouveau`, purge both packages and reboot. `--autoremove` purges
+the driver packages too, including the configuration that blacklists `nouveau`:
+
+```sh
+sudo apt purge --autoremove tekne-nvidia tekne-nvidia-repo
+```
+
 ### APT repositories
 
 Besides Devuan's, Tekne enables its own repository (DEC-040), Brave's and
 XLibre's repositories and `excalibur-backports`, each pinned to the few
-packages Tekne takes from it (DEC-026). The files are
+packages Tekne takes from it (DEC-026). NVIDIA's is added only by
+`tekne-nvidia-repo` (see above). The files are
 `/etc/apt/sources.list.d/tekne*.sources`,
 `/etc/apt/sources.list.d/brave-browser-release.sources` and
 `/etc/apt/preferences.d/tekne*.pref`. To install another package from
