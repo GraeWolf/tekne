@@ -1,5 +1,0 @@
-# Phase 11 spike (DEC-041): the NVIDIA driver from excalibur-backports,
-# built for the backports kernel (DEC-036). Only this source package.
-Package: src:nvidia-graphics-drivers
-Pin: release n=excalibur-backports
-Pin-Priority: 500

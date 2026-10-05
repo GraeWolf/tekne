@@ -409,7 +409,7 @@ installs (DEC-044, DEC-045). The rest is small configuration work that QEMU can 
 
 ### 9.4 Proposed design
 
-**NVIDIA (DEC-041, redesigned 2026-10-05).** The Phase 11 spike (`spike/phase11/README.md`) found:
+**NVIDIA (DEC-041, redesigned 2026-10-05).** The Phase 11 spike found (its findings: `git show 94c319e:spike/phase11/README.md`):
 - **Devuan's driver doesn't build.** 550.163.01 is Devuan's only driver. The backports build supports kernels up to 6.17, but Tekne runs 7.1 (DEC-036). Debian's 7.0 fixes are only in sid and forky.
 - **NVIDIA's own works.** 615.71.09 from NVIDIA's Debian 13 repository uses open kernel modules (Turing and newer), builds for 7.1, and pulls in no systemd package. Its own modprobe settings make the kernel handle suspend and hibernate (`NVreg_UseKernelSuspendNotifiers=1`).
 - **It runs with XLibre.** XLibre loads NVIDIA's DDX despite the ABI mismatch. Offload rendering works, and the idle GPU powers off on battery.
@@ -517,7 +517,7 @@ so it most likely waits for Freia to become stable. The options:
 ### 9.7 Phases and acceptance criteria
 Phase numbers continue from §8.
 
-**Phase 11: Decisions and the NVIDIA spike**. In progress. The spike's kit, results and findings are in `spike/phase11/` (`1bf9e27`). DEC-041 was redesigned and DEC-044 and DEC-045 added on 2026-10-05.
+**Phase 11: Decisions and the NVIDIA spike**. In progress. The spike's kit, results and findings were in `spike/phase11/`, removed in Phase 13 and kept in git history (`git show 94c319e:spike/phase11/README.md`). DEC-041 was redesigned and DEC-044 and DEC-045 added on 2026-10-05.
 - DEC-041, DEC-042 and DEC-043, with History lines on the Decided entries they amend (DEC-016, DEC-027, DEC-030, DEC-036, DEC-040). Done 2026-10-03. After the spike: DEC-041 redesigned, DEC-044 and DEC-045 added, and History lines on DEC-025, DEC-026, DEC-027, DEC-036 and DEC-040. Done 2026-10-05.
 - (maintainer) On the laptop, after a backup, install the NVIDIA driver by hand. Attempt 1 used `excalibur-backports`, whose module didn't build. Attempt 2 used NVIDIA's repository (`spike/phase11/install-nvidia-repo.sh`). The driver is removable with `spike/phase11/rollback.sh`, and tty2 stays available for recovery.
 - ✅ The DKMS module builds against Tekne's current backports kernel. Passed 2026-10-03 on 7.1.13 with NVIDIA 615. Recheck on 7.2.6 once backports finishes moving.
@@ -543,7 +543,7 @@ Phase numbers continue from §8.
 - ✅ (maintainer) In QEMU and on the laptop: the bar shows the icons, the centred clock and all nine tags in three states. `nmtui` and Blueman open floating and centred from the bar, and an SSH key's passphrase is asked once per session.
 - ✅ (maintainer) On the laptop, with the spike's `~/.xserverrc` and hooks removed and the packaged ones installed, suspend and hibernate resume with a working internal keyboard. The `hid-asus` report has been filed.
 
-**Phase 13: `tekne-nvidia`**
+**Phase 13: `tekne-nvidia`**. ✔ Complete (2026-10-05). Built in `bb27cd0`, `f600b9a`, `c70b612`, `2053817` and `94c319e`. `tests/smoke/nvidia.py` found that `apt purge --autoremove` can't remove the driver on Tekne, because GTK 4's Vulkan loader makes APT keep NVIDIA's Vulkan driver, so `tekne-nvidia` ships `tekne-nvidia-remove`. CI on `phase13` passed every test at `94c319e` (run 37381130064), the NVIDIA test included. On the laptop, after `spike/phase11/rollback.sh`, the documented steps (from `out/packages/`, as 0.3 isn't published yet) gave Phase 11's results: the module on 7.2.6, offload on the RTX 3060, the idle GPU powered off on battery, and suspend and hibernate with working keyboards. `spike/phase11/` is removed.
 - `tekne-nvidia-repo` and `tekne-nvidia` from §9.4 (DEC-041), published in Tekne's repository with the other four, and documented in `docs/customizing.md` and docs/testing.md. The spike's files are replaced by the packages, and `spike/phase11/` is removed, kept in git history like Phase 0's.
 - ✅ `tekne-nvidia-repo`'s key matches its recorded checksum, and the build's global-key check still passes. On an installed system, `apt-cache policy` shows NVIDIA's repository offering only the driver's six source packages; everything else from it, `cuda-*` and `nvidia-driver-pinning-*` included, is at -1.
 - ✅ Every build compiles NVIDIA's open DKMS module against the kernel the ISO ships, from a source verified by the repository's signature, and fails if it doesn't build.

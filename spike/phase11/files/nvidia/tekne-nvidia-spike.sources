@@ -1,7 +1,0 @@
-# Phase 11 spike, option 3 (DEC-041): NVIDIA's Debian 13 repository, for the
-# display driver only; tekne-nvidia-spike.pref stops it providing anything else.
-# A flat repository: no suite or component.
-Types: deb
-URIs: https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/
-Suites: /
-Signed-By: /usr/share/keyrings/tekne-nvidia-spike.gpg

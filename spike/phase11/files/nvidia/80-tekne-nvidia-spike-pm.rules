@@ -1,4 +1,0 @@
-# Phase 11 spike, option 3 (DEC-041): NVIDIA's 60-nvidia.rules enables runtime
-# power management for the GPU itself but not for its HDMI audio function,
-# and the GPU can only power off once that is suspended too.
-ACTION=="bind", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x040300", TEST=="power/control", ATTR{power/control}="auto"
