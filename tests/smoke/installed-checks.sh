@@ -68,3 +68,12 @@ hook_rc=$?
 echo "ASUS_KBD_HOOK=$([ "${hook_rc}" = 0 ] && [ "$(dmesg | grep -c tekne-asus-keyboard)" = "${kmsg_before}" ] && echo idle || echo acted)"
 echo "TLP_SLEEP_HOOK=$([ -x /usr/libexec/system-sleep/49-tekne-tlp ] && [ -x /usr/lib/elogind/system-sleep/49-tlp-sleep ] && echo linked || echo missing)"
 echo "GRUB_PKG=$(dpkg-query -W -f '${Package} ${db:Status-Status}\n' grub-pc grub-efi-amd64 2>/dev/null | awk '$2 == "installed" { print $1 }')"
+# Phase 12, per user: XDG directories made by the installer, and the shell
+# defaults new users get from /etc/skel/.bash_aliases (bat as cat; fastfetch
+# with Tekne's logo when tekne-terminal starts a shell). upgrade.py's user
+# predates these, so there they must be absent: Tekne never writes into an
+# existing home.
+as_tester() { sudo -u tester env HOME=/home/tester "$@"; }
+echo "XDG_DIRS=$(as_tester sh -c '. "$HOME/.config/user-dirs.dirs" 2>/dev/null && [ -d "${XDG_DOCUMENTS_DIR:-/nonexistent}" ] && [ -d "${XDG_DOWNLOAD_DIR:-/nonexistent}" ]' && echo present || echo missing)"
+echo "CAT_ALIAS=$(as_tester bash -ic 'alias cat' 2>/dev/null | grep -q batcat && echo batcat || echo none)"
+echo "FASTFETCH_LOGO=$(as_tester env TEKNE_FASTFETCH=1 bash -ic true 2>/dev/null | grep -q '████████████████' && echo tekne || echo none)"

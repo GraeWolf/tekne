@@ -36,6 +36,10 @@ lock screen and the wallpaper. Details: [desktop-stack.md](desktop-stack.md).
 | Lock screen | `xss-lock` runs `i3lock --color=1a1b26` | Change the `xss-lock` line in your autostart copy. |
 | GTK theme, icons, font | Dark Adwaita, Papirus-Dark icons, Noto Sans: `/etc/xdg/gtk-3.0/settings.ini`, `/etc/xdg/gtk-4.0/settings.ini`, and a GSettings default for the dark style | Run `lxappearance`, or write `~/.config/gtk-3.0/settings.ini`. For GTK 4 and libadwaita apps: `sudo apt install libglib2.0-bin`, then `gsettings set org.gnome.desktop.interface color-scheme default`. |
 | Colours | Tokyo Night in all of the above (DEC-034) | Each program's own config; there's no single theme switch. |
+| Shell defaults: `cat` is `batcat --paging=never`, `bat` is `batcat`, and fastfetch runs when `tekne-terminal` opens a terminal | `/usr/share/tekne/bash/tekne.bashrc`, sourced by the line in `~/.bash_aliases` that new users get from `/etc/skel` | Delete that line to drop all of it, or create `~/.config/tekne/no-fastfetch` to keep the aliases only. Users created before Tekne 0.3 don't have the line; add it to `~/.bash_aliases` to opt in: `[ -r /usr/share/tekne/bash/tekne.bashrc ] && . /usr/share/tekne/bash/tekne.bashrc`. |
+| fastfetch output | `/usr/share/tekne/fastfetch/config.jsonc`, with Tekne's logo | Create `~/.config/fastfetch/config.jsonc` (`fastfetch --gen-config`); it's used instead. |
+| SSH keys | `/etc/ssh/ssh_config.d/tekne.conf` sets `AddKeysToAgent yes`, so the session's `ssh-agent` (started by Xsession) keeps a key after its passphrase is entered once | Set `AddKeysToAgent no` in `~/.ssh/config`. |
+| XDG user directories (Documents, Downloads, ...) | Created by the installer and, if missing, by `tekne-session` at each login (`xdg-user-dirs-update`) | Edit `~/.config/user-dirs.dirs`. |
 
 ### Starting the desktop
 

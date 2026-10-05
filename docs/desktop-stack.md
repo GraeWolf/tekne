@@ -36,6 +36,7 @@ and configured by `tekne-config`.
 | Screenshots | `maim` + `xclip` | `tekne-screenshot`, bound to `Mod+p` / `Mod+Shift+p` |
 | Clipboard | `xclip`, `copyq` | `clipmenu` isn't packaged in Excalibur; CopyQ replaces it (`Mod+v`). `cliphist` and `clipman` are Wayland-only |
 | Images/PDF | `feh` (also sets wallpaper), `zathura` | |
+| Shell and media tools | `bat`, `fastfetch`, `ffmpeg`, `imagemagick`, `openssh-client` | `cat` is aliased to `batcat --paging=never`, and fastfetch runs, with Tekne's logo, when `tekne-terminal` opens a terminal, through `/usr/share/tekne/bash/tekne.bashrc`, which new users source from `/etc/skel/.bash_aliases`. openssh-client is the client only, for `ssh` and the session's `ssh-agent` (no server, DEC-023) |
 | Fonts | `fonts-noto`, `fonts-noto-color-emoji`, `fonts-jetbrains-mono`; Nerd Fonts "Symbols Only" in tekne-config | The symbols fonts aren't packaged in Devuan: tekne-config vendors a checksum-pinned release (DEC-043) and adds them as fontconfig's fallback after JetBrains Mono |
 | Theming | Tokyo Night colours; dark Adwaita (GTK) and `papirus-icon-theme`, `lxappearance` | DEC-034. No Tokyo Night GTK theme is packaged in Devuan |
 | Firewall | `nftables` + Tekne ruleset | DEC-023 |
@@ -58,7 +59,12 @@ Debian's standard `startx` → `Xsession` path, so a user's own `~/.xinitrc` or
    and its `sh -c "/bin/login -f"` inittab line leaves `login` stopped by job control.
 2. **`/etc/X11/Xsession`** (from `x11-common`). Its `75dbus_dbus-launch` step starts the
    D-Bus session bus (`dbus-x11`), then it runs the `x-session-manager` alternative.
+   Its `90x11-common_ssh-agent` step starts `ssh-agent` (`use-ssh-agent` in
+   `/etc/X11/Xsession.options`), which `/etc/ssh/ssh_config.d/tekne.conf`
+   (`AddKeysToAgent yes`) fills on a key's first use.
 3. **`tekne-session`**, registered as `x-session-manager` by `tekne-config`:
+   - `xdg-user-dirs-update` creates the user's XDG directories if they're missing
+     (desktop environments do this from XDG autostart, which herbstluftwm doesn't read).
    - `gnome-keyring-daemon --start --components=secrets` attaches to the keyring that
      PAM started and unlocked at login (DEC-030), and exports its environment.
    - It runs `exec herbstluftwm --autostart /usr/share/tekne/herbstluftwm/autostart`,

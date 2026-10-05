@@ -250,7 +250,7 @@ def main():
         except (TimeoutError, RuntimeError) as err:
             problems.append(f"after the upgrade: {err}")
             checks = {}
-        want = install.expected(mode, luks)
+        want = install.expected(mode, luks, upgraded=True)
         problems += [f"{k}: got {checks.get(k)!r}, want {v!r}" for k, v in want.items()
                      if checks and checks.get(k) != v]
 

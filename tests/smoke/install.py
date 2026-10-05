@@ -58,8 +58,12 @@ ANSWERS = {
 BEGIN, END = "__TEKNE" + "_BEGIN__", "__TEKNE" + "_END__"
 
 
-def expected(mode, luks):
-    return {
+def expected(mode, luks, upgraded=False):
+    # upgrade.py's user was made by the previous release, before /etc/skel had
+    # .bash_aliases and before the installer made XDG directories.
+    per_user = ({"XDG_DIRS": "missing", "CAT_ALIAS": "none", "FASTFETCH_LOGO": "none"} if upgraded
+                else {"XDG_DIRS": "present", "CAT_ALIAS": "batcat", "FASTFETCH_LOGO": "tekne"})
+    return per_user | {
         "PID1": "init", "RUN_SYSTEMD": "absent", "SYSTEMD_PKGS": "0",
         "LIVE_PKGS": "0", "LIVE_FILES": "0", "AUTOLOGIN": "0",
         "ROOT_FS": "ext4", "BOOT_FS": "ext4", "EFI_FS": "vfat" if mode == "uefi" else "none",

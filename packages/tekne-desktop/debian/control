@@ -60,6 +60,14 @@ Depends: ${misc:Depends},
  feh,
  zathura,
  lxappearance,
+# Everyday tools (SPEC §9.2): bat as cat, fastfetch in new terminals, media
+# tools, and the SSH client whose agent Xsession starts (use-ssh-agent)
+ bat,
+ fastfetch,
+ ffmpeg,
+ imagemagick,
+ openssh-client,
+ xdg-user-dirs,
 # Theme (DEC-034): Papirus icons with dark Adwaita, next to Tokyo Night
  papirus-icon-theme,
 # Fonts

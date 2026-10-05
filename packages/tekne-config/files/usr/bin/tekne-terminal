@@ -3,6 +3,8 @@
 # alternative: alacritty with Tekne's Tokyo Night config, unless you have an
 # alacritty config of your own, which then wins. alacritty 0.15 has no
 # system-wide config file, hence this wrapper.
+# The interactive shell inside runs fastfetch once (tekne.bashrc).
+export TEKNE_FASTFETCH=1
 config="${XDG_CONFIG_HOME:-$HOME/.config}"
 for own in "${config}/alacritty/alacritty.toml" "${config}/alacritty.toml" \
 	"${HOME}/.config/alacritty/alacritty.toml" "${HOME}/.alacritty.toml"; do

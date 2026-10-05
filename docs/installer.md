@@ -40,7 +40,7 @@ unattended paths share every validation and install step.
 10. **Configure the target** in a chroot:
     - `fstab` and `crypttab` by UUID. The LUKS mapping is named `tekne`, so the boot prompt reads "Please unlock disk tekne:" (DEC-037)
     - Hostname, `/etc/hosts`, timezone, locale, and keyboard (`/etc/default/keyboard`)
-    - Create the user, lock root
+    - Create the user, lock root, and create the user's XDG directories (`xdg-user-dirs-update`, named for the chosen locale)
     - Purge the live packages (`live-boot*`, `live-config*`, `live-tools`) and `tekne-installer`. Remove Tekne's live-only files (`0161-tekne-autologin`, `tekne-serial-getty`), and restore `/etc/inittab` from `/usr/share/sysvinit/inittab`, which drops the live image's serial test getty.
     - Create the swapfile (DEC-017): `/swapfile`, size = RAM rounded up to the next GiB, mode 0600, created with `mkswap --file` so it has no holes
     - Configure resume: `resume=UUID=<root fs UUID> resume_offset=<offset>` go on the kernel command line (`GRUB_CMDLINE_LINUX`), because initramfs-tools reads `resume_offset` only from there. The offset is the first physical extent from `filefrag -v /swapfile`. `/etc/initramfs-tools/conf.d/resume` gets `RESUME=UUID=…`, which makes sure the resume hook is in the initramfs.

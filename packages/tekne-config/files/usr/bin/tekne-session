@@ -10,6 +10,10 @@ if command -v gnome-keyring-daemon >/dev/null 2>&1; then
 	export GNOME_KEYRING_CONTROL
 fi
 
+# XDG user directories (Documents, Downloads, ...): desktop environments run
+# this from XDG autostart, which herbstluftwm doesn't read. It's idempotent.
+command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update
+
 user_autostart="${XDG_CONFIG_HOME:-$HOME/.config}/herbstluftwm/autostart"
 if [ -x "${user_autostart}" ]; then
 	exec herbstluftwm

@@ -424,6 +424,9 @@ configure_system() {
 	in_target useradd --create-home --shell /bin/bash --comment "${FULLNAME}" --groups "${groups}" "${USERNAME}"
 	printf '%s:%s\n' "${USERNAME}" "${PASSWORD}" | run chroot "${TARGET}" chpasswd
 	in_target passwd --lock root
+	# The user's XDG directories (Documents, Downloads, ...), named for the chosen
+	# locale. tekne-session also runs this at every login, for existing users.
+	in_target runuser -u "${USERNAME}" -- env HOME="/home/${USERNAME}" LANG="${LOCALE}" xdg-user-dirs-update
 
 	if [ "${SERIAL_CONSOLE}" = yes ]; then
 		echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' >> "${TARGET}/etc/inittab"

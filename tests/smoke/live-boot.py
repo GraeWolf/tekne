@@ -55,6 +55,8 @@ CHECK_CMD = (
     # windows for nmtui, Blueman and Pavucontrol.
     'fc-match -f "%{family[0]}\\n" "Symbols Nerd Font" | grep -qx "Symbols Nerd Font" && echo SYMBOLS_FONT=present || echo SYMBOLS_FONT=missing; '
     'echo "FLOAT_RULES=$(DISPLAY=:0 herbstclient list_rules | grep -c floatplacement=center)"; '
+    # ssh-agent keeps a key after its first use (/etc/ssh/ssh_config.d/tekne.conf).
+    'ssh -G localhost </dev/null 2>/dev/null | grep -qx "addkeystoagent true" && echo SSH_ADDKEYS=yes || echo SSH_ADDKEYS=no; '
     'sudo nft list chain inet tekne input 2>/dev/null | grep -q "policy drop" && echo FIREWALL=loaded || echo FIREWALL=missing; '
     "sudo ss -H -tuln | awk '{print $5}' | grep -v -E '^(127\\.|\\[::1\\]|\\[::ffff:127\\.)' | sed 's/^/LISTEN=/'; "
     'echo __TEKNE""_END__\n'
@@ -104,12 +106,14 @@ def run(mode, iso):
     print(f"[{mode}] firewall: {results.get('FIREWALL')}")
     print(f"[{mode}] os-release ID: {results.get('OS_ID')}")
     print(f"[{mode}] X seat backend: {results.get('SEAT')}")
-    print(f"[{mode}] symbols font: {results.get('SYMBOLS_FONT')}, centred float rules: {results.get('FLOAT_RULES')}")
+    print(f"[{mode}] symbols font: {results.get('SYMBOLS_FONT')}, centred float rules: {results.get('FLOAT_RULES')}, "
+          f"ssh AddKeysToAgent: {results.get('SSH_ADDKEYS')}")
     print(f"[{mode}] listening beyond loopback: {', '.join(listening) or 'none'}")
     ok = (results.get("PID1") == "init" and results.get("RUN_SYSTEMD") == "absent" and not down
           and results.get("FIREWALL") == "loaded" and not listening
           and results.get("OS_ID") == "tekne" and results.get("SEAT") == "logind"
-          and results.get("SYMBOLS_FONT") == "present" and results.get("FLOAT_RULES") == "3")
+          and results.get("SYMBOLS_FONT") == "present" and results.get("FLOAT_RULES") == "3"
+          and results.get("SSH_ADDKEYS") == "yes")
     print(f"{'PASS' if ok else 'FAIL'} [{mode}] (serial log: {log_path})")
     return ok
 

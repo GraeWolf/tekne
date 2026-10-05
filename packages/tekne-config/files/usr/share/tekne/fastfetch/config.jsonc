@@ -1,0 +1,19 @@
+// Tekne's fastfetch config, used by tekne.bashrc unless you have
+// ~/.config/fastfetch/config.jsonc. The logo is Tekne's geometric T (DEC-034):
+// fastfetch would otherwise show Devuan's, because os-release has ID_LIKE=devuan.
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "type": "file",
+        "source": "/usr/share/tekne/fastfetch/logo.txt",
+        "color": { "1": "blue", "2": "magenta" },
+        "padding": { "top": 1, "right": 3 }
+    },
+    "display": {
+        "color": { "keys": "blue", "title": "magenta" }
+    },
+    "modules": [
+        "title", "separator", "os", "kernel", "uptime", "packages", "wm",
+        "terminal", "cpu", "gpu", "memory", "disk", "battery", "break", "colors"
+    ]
+}
