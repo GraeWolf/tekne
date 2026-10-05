@@ -1,0 +1,7 @@
+# Nerd Fonts "Symbols Only" (DEC-043): the fonts tekne-config ships for the
+# bar's and the terminal's icons. scripts/build-packages.sh downloads this
+# release asset and refuses it unless its SHA-256 matches.
+# To update: change all three lines in one commit and note it in CHANGELOG.md.
+VERSION=3.5.1
+URL=https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/NerdFontsSymbolsOnly.tar.xz
+SHA256=01172f37db8543edb102e5cb5c64101c9f4686630804d49b419aa07b23a69996

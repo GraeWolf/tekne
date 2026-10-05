@@ -17,13 +17,13 @@ and configured by `tekne-config`.
 | Login | tty1 login → `startx` (DEC-014) | Live session: autologin on tty1 |
 | Seat/session | `elogind`, `libpam-elogind`, `polkitd` | Rootless X, device access, lid/power keys. Devuan's `libelogind-compat` replaces `libsystemd0` in the desktop image, and `udev` is Devuan's transitional package for `eudev` |
 | Window manager | `herbstluftwm` | |
-| Bar | `polybar` | Tags, window title, network, volume, battery, clock, tray |
+| Bar | `polybar` | All nine tags (active, occupied, empty), window title, the clock in the centre, then volume, network, battery and the tray, with Nerd Font icons (DEC-043) |
 | Launcher | `rofi` | App launcher, window switcher, power menu |
 | Notifications | `dunst` | |
 | Compositor | `picom` | Tear-free, minimal effects |
 | Polkit agent | `lxpolkit` | Needed for GUI privilege prompts |
 | Screen lock | `xss-lock` + `i3lock` | Locks on suspend and idle |
-| Network UI | `network-manager` (`nmcli`, `nmtui`) | DEC-011. No tray applet. Clicking polybar's network module opens `nmtui` in a terminal |
+| Network UI | `network-manager` (`nmcli`, `nmtui`) | DEC-011. No tray applet. Clicking polybar's network module runs `tekne-nmtui`: `nmtui` in a floating, centred terminal |
 | Audio | `pipewire`, `pipewire-pulse`, `wireplumber`, `pavucontrol`, `pamixer` | DEC-012 |
 | Bluetooth | `bluez`, `blueman` | |
 | Power/laptop | elogind (lid/suspend/hibernate, DEC-017), `brightnessctl`, `tlp` | tlp has no systemd dependency. Its sleep hook is in a directory Devuan's elogind doesn't read, so tekne-config's `/usr/libexec/system-sleep/49-tekne-tlp` runs it (DEC-025) |
@@ -36,7 +36,7 @@ and configured by `tekne-config`.
 | Screenshots | `maim` + `xclip` | `tekne-screenshot`, bound to `Mod+p` / `Mod+Shift+p` |
 | Clipboard | `xclip`, `copyq` | `clipmenu` isn't packaged in Excalibur; CopyQ replaces it (`Mod+v`). `cliphist` and `clipman` are Wayland-only |
 | Images/PDF | `feh` (also sets wallpaper), `zathura` | |
-| Fonts | `fonts-noto`, `fonts-noto-color-emoji`, `fonts-jetbrains-mono` | |
+| Fonts | `fonts-noto`, `fonts-noto-color-emoji`, `fonts-jetbrains-mono`; Nerd Fonts "Symbols Only" in tekne-config | The symbols fonts aren't packaged in Devuan: tekne-config vendors a checksum-pinned release (DEC-043) and adds them as fontconfig's fallback after JetBrains Mono |
 | Theming | Tokyo Night colours; dark Adwaita (GTK) and `papirus-icon-theme`, `lxappearance` | DEC-034. No Tokyo Night GTK theme is packaged in Devuan |
 | Firewall | `nftables` + Tekne ruleset | DEC-023 |
 | Time sync | `chrony` | DEC-024. Must not use systemd-timesyncd |

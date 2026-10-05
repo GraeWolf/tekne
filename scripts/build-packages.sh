@@ -25,6 +25,18 @@ for dir in "${SRC}"/*/; do
 	if [ "${name}" = tekne-branding ]; then
 		cp -a "${SRC}/../branding" "${TMP}/${name}/branding"
 	fi
+	# tekne-config ships Nerd Fonts' symbols fonts (DEC-043): a pinned upstream
+	# release, refused unless its checksum matches vendor/nerd-fonts.pin.
+	if [ -f "${dir}/vendor/nerd-fonts.pin" ]; then
+		url="$(sed -n 's/^URL=//p' "${dir}/vendor/nerd-fonts.pin")"
+		sha="$(sed -n 's/^SHA256=//p' "${dir}/vendor/nerd-fonts.pin")"
+		curl -fsSL --retry 3 -o "${TMP}/nerd-fonts.tar.xz" "${url}"
+		echo "${sha}  ${TMP}/nerd-fonts.tar.xz" | sha256sum -c --quiet \
+			|| { echo "error: ${url} doesn't match vendor/nerd-fonts.pin" >&2; exit 1; }
+		mkdir -p "${TMP}/${name}/vendor/nerd-fonts"
+		tar -xJf "${TMP}/nerd-fonts.tar.xz" -C "${TMP}/${name}/vendor/nerd-fonts"
+		rm "${TMP}/nerd-fonts.tar.xz"
+	fi
 	sed -i "1s/^\(${name}\) ([^)]*)/\1 (${VERSION})/" "${TMP}/${name}/debian/changelog"
 	grep -q "^${name} (${VERSION})" "${TMP}/${name}/debian/changelog" \
 		|| { echo "error: couldn't set ${name}'s version" >&2; exit 1; }

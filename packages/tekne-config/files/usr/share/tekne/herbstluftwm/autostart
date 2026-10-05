@@ -94,6 +94,11 @@ hc rule windowtype~'_NET_WM_WINDOW_TYPE_(DIALOG|UTILITY|SPLASH)' floating=on
 hc rule windowtype='_NET_WM_WINDOW_TYPE_DIALOG' focus=on
 hc rule windowtype~'_NET_WM_WINDOW_TYPE_(NOTIFICATION|DOCK|DESKTOP)' manage=off
 hc rule fixedsize floating=on
+# Windows the bar opens float, centred: nmtui (tekne-nmtui), Blueman's manager
+# and Pavucontrol, however they're started.
+hc rule class=tekne-float floating=on floatplacement=center
+hc rule class~'[Bb]lueman-manager' floating=on floatplacement=center
+hc rule class~'[Pp]avucontrol' floating=on floatplacement=center
 
 hc unlock
 hc detect_monitors

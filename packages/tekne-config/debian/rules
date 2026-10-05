@@ -3,6 +3,14 @@
 %:
 	dh $@
 
+# Nerd Fonts' symbols fonts (DEC-043) are a pinned upstream release that
+# scripts/build-packages.sh downloads and checks into vendor/nerd-fonts/.
+override_dh_auto_build:
+	[ -f vendor/nerd-fonts/SymbolsNerdFont-Regular.ttf ] || { echo "vendor/nerd-fonts/ is missing: build with scripts/build.sh" >&2; exit 1; }
+
+execute_after_dh_installdocs:
+	install -m 0644 vendor/nerd-fonts/LICENSE debian/tekne-config/usr/share/doc/tekne-config/nerd-fonts-LICENSE
+
 # The firewall init script is named tekne-firewall, not tekne-config.
 override_dh_installinit:
 	dh_installinit --name=tekne-firewall
