@@ -8,6 +8,35 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
+# deb.devuan.org is a round robin of Devuan's mirrors. One that hasn't finished
+# syncing a new kernel answers 404, which apt doesn't retry (not even with
+# Acquire::Retries), and the resolver's cached answer would send a retry to the
+# same mirror. So if the download fails, fetch the files apt wants from
+# pkgmaster.devuan.org, the master archive every mirror syncs from.
+# apt doesn't hash-check a .deb it finds in its cache, and --print-uris gives
+# only MD5, so each file is checked here against the SHA256 in the signed
+# index, by its pool path. (curl comes with tekne-config, installed by 0500.)
+index_sha256() {	# POOL_PATH PACKAGE
+	apt-cache show "$2" | awk -v f="$1" '/^Filename: / { m = ($2 == f) } m && /^SHA256: / { print $2; exit }'
+}
+if ! apt-get install -y --download-only linux-image-amd64; then
+	echo "Kernel download failed; fetching the same files from pkgmaster.devuan.org"
+	uris="$(mktemp)"
+	apt-get install -y --print-uris linux-image-amd64 \
+		| sed -n "s/^'\(http:\/\/deb\.devuan\.org\/merged\/[^']*\)' \([^ ]*\) .*/\1 \2/p" > "${uris}"
+	while read -r uri file; do
+		[ -e "/var/cache/apt/archives/${file}" ] && continue
+		pool="$(echo "${uri#http://deb.devuan.org/merged/}" | sed -e 's/%2[bB]/+/g' -e 's/%7[eE]/~/g' -e 's/%3[aA]/:/g')"
+		want_sha="$(index_sha256 "${pool}" "${file%%_*}")"
+		[ -n "${want_sha}" ] || { echo "FAIL: no SHA256 in the index for ${pool}"; exit 1; }
+		curl -fsSL --retry 3 -o "/var/cache/apt/archives/partial/${file}" \
+			"http://pkgmaster.devuan.org/merged/${uri#http://deb.devuan.org/merged/}"
+		echo "${want_sha}  /var/cache/apt/archives/partial/${file}" | sha256sum -c --quiet \
+			|| { echo "FAIL: ${file} from pkgmaster doesn't match the index"; exit 1; }
+		mv "/var/cache/apt/archives/partial/${file}" "/var/cache/apt/archives/${file}"
+	done < "${uris}"
+	rm -f "${uris}"
+fi
 apt-get install -y linux-image-amd64
 
 want="$(dpkg-query -W -f '${Depends}\n' linux-image-amd64 | tr ',' '\n' \
