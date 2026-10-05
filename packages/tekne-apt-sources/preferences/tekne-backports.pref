@@ -2,6 +2,8 @@
 # hardware needs it (e.g. ASUS ROG keyboards on hid-asus). Only the kernel
 # packages are pinned up; everything else keeps the suite's default priority
 # (NotAutomatic), so it can't replace a stable package unless asked for.
-Package: linux-image-amd64 linux-image-*-amd64 linux-headers-amd64 linux-headers-*-amd64 linux-base-amd64 linux-base-*-amd64 linux-binary-*-amd64 linux-modules-*-amd64 linux-kbuild-* linux-compiler-*
+# linux-base is the kernel's install-helper package: 7.2 pre-depends on a newer
+# one than stable's.
+Package: linux-base linux-image-amd64 linux-image-*-amd64 linux-headers-amd64 linux-headers-*-amd64 linux-base-amd64 linux-base-*-amd64 linux-binary-*-amd64 linux-modules-*-amd64 linux-kbuild-* linux-compiler-*
 Pin: release n=excalibur-backports
 Pin-Priority: 500
