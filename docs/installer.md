@@ -36,7 +36,7 @@ unattended paths share every validation and install step.
 6. **Summary and confirmation.** Show every choice. The user has to type the disk name (for example `nvme0n1`) to proceed. Anything else aborts, and nothing has been written yet.
 7. **Partition**, from a fixed layout (§3).
 8. **Encrypt and format.** Run `cryptsetup luksFormat --type luks2` if encryption was chosen, then `mkfs.vfat` for the ESP and `mkfs.ext4` for the other partitions.
-9. **Copy** the live root to the target with `rsync -aHAX` (excluding `/proc`, `/sys`, `/dev`, `/run`, `/tmp`, `/media`, and live-only paths), and show progress.
+9. **Copy** the live root to the target with `rsync -aHAX` (excluding `/proc`, `/sys`, `/dev`, `/run`, `/tmp`, `/media`, and live-only paths), and show progress. `/boot`'s contents are copied in a second pass, because `/boot` is a separate partition and a hard link can't cross filesystems: from kernel 7.2, `/usr/lib/modules/VERSION/vmlinuz` and `config` are hard links to the copies in `/boot`.
 10. **Configure the target** in a chroot:
     - `fstab` and `crypttab` by UUID. The LUKS mapping is named `tekne`, so the boot prompt reads "Please unlock disk tekne:" (DEC-037)
     - Hostname, `/etc/hosts`, timezone, locale, and keyboard (`/etc/default/keyboard`)

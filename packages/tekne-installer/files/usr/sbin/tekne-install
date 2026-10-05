@@ -332,12 +332,17 @@ partition_and_format() {
 copy_system() {
 	step "Copying the system (several minutes)"
 	[ -d "${SOURCE}/etc" ] || die "live system image not found at ${SOURCE}"
+	# /boot is its own partition, and a hard link can't cross filesystems. Kernel
+	# 7.2's packages hard-link /usr/lib/modules/VERSION/{vmlinuz,config} to their
+	# /boot copies, so /boot's contents are copied in a second pass: each side
+	# gets its own copy, and -H still keeps every other hard link.
 	if [ "${UNATTENDED}" = yes ]; then
-		run rsync -aHAX --numeric-ids "${SOURCE}/" "${TARGET}/"
+		run rsync -aHAX --numeric-ids --exclude='/boot/*' "${SOURCE}/" "${TARGET}/"
 	else
-		log "+ rsync -aHAX --numeric-ids --info=progress2 ${SOURCE}/ ${TARGET}/"
-		rsync -aHAX --numeric-ids --info=progress2 "${SOURCE}/" "${TARGET}/" >&3 2>>"${LOG}"
+		log "+ rsync -aHAX --numeric-ids --exclude=/boot/* --info=progress2 ${SOURCE}/ ${TARGET}/"
+		rsync -aHAX --numeric-ids --exclude='/boot/*' --info=progress2 "${SOURCE}/" "${TARGET}/" >&3 2>>"${LOG}"
 	fi
+	run rsync -aHAX --numeric-ids "${SOURCE}/boot/" "${TARGET}/boot/"
 
 	# grub-install needs EFI variables to add the firmware boot entry.
 	if [ "$(firmware)" = uefi ] && ! mountpoint -q /sys/firmware/efi/efivars; then
