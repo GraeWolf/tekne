@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+Work towards Tekne 0.3, "the hybrid-graphics laptop as a daily driver" (SPEC §9).
+
+### Added
+- **Bar:** all nine tags (active, occupied or empty), the clock in the centre,
+  and icons instead of text for volume, Wi-Fi, Ethernet, battery and the clock,
+  from Nerd Fonts' "Symbols Only" fonts (v3.5.1, pinned by checksum, DEC-043).
+  The same fonts are fontconfig's fallback after JetBrains Mono, so icons also
+  render in the terminal.
+- **Floating windows:** `nmtui` (from the bar's network modules, through the new
+  `tekne-nmtui`), Blueman's manager and Pavucontrol open floating and centred.
+- **Shell defaults** for new users, through `~/.bash_aliases` from `/etc/skel`:
+  `cat` runs `batcat --paging=never`, and fastfetch, with Tekne's logo, runs
+  when `tekne-terminal` opens a terminal. Users created before 0.3 can opt in
+  with one line (docs/customizing.md).
+- **SSH keys:** `AddKeysToAgent yes`, so the session's `ssh-agent` asks for a
+  key's passphrase once per session. `openssh-client` is now installed (the
+  client only; there's still no SSH server).
+- **XDG user directories** (Documents, Downloads, ...): created by the
+  installer, and by `tekne-session` at each login if they're missing.
+- **Packages:** `bat`, `fastfetch`, `ffmpeg`, `imagemagick`, `openssh-client`.
+
+### Fixed
+- **Resume:** X now takes its seat from elogind rather than seatd
+  (`LIBSEAT_BACKEND=logind`, DEC-045). Under seatd, X sometimes ignored every
+  keyboard after resuming, when a driver forced a VT switch on suspend.
+- **ASUS N-KEY keyboards** (`0b05:19b6`) work again after deep sleep: an
+  elogind hook re-probes them on resume (DEC-044).
+- **TLP's suspend/resume handling** now runs: tlp installs its hook where
+  Devuan's elogind doesn't look (DEC-025).
+- **Kernel 7.2:** `linux-base` comes from backports too, which kernel 7.2.6
+  needs. Without it, builds failed and installed systems stayed on 7.1
+  (DEC-036).
+
 ## 0.2 (2026-10-03)
 
 Tekne 0.2 makes an installed Tekne updatable with apt alone. Tekne's own
