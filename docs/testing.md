@@ -91,8 +91,8 @@ in QEMU (`tests/smoke/nvidia.py`), but only real hardware can check the driver:
    builds the module for it (step 1 after rebooting).
 6. **External monitors:** outputs wired to the integrated GPU work. Outputs wired to
    the NVIDIA GPU (often HDMI) don't yet (DEC-041); note which ones.
-7. **Back to nouveau:** `sudo apt purge --autoremove tekne-nvidia tekne-nvidia-repo`,
-   then reboot. `nouveau` is loaded again.
+7. **Back to nouveau:** `sudo tekne-nvidia-remove`, then reboot. `nouveau` is
+   loaded again, and `dpkg -l '*nvidia*'` lists only `firmware-nvidia-graphics`.
 
 ## Before installing on a machine you depend on
 

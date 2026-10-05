@@ -1,0 +1,17 @@
+#!/bin/sh
+# Removes NVIDIA's driver, tekne-nvidia and tekne-nvidia-repo, and goes back
+# to nouveau after a reboot (DEC-041). Run with sudo; apt asks before
+# removing anything.
+#
+# apt's autoremove can't do this alone. GTK 4 needs libvulkan1, which
+# recommends "mesa-vulkan-drivers | vulkan-icd", and apt keeps every installed
+# provider of a recommended virtual package: NVIDIA's Vulkan driver, and
+# through it the rest of the driver. So everything built from the driver's
+# source packages (the ones tekne-nvidia-repo's pin admits) is purged by
+# name, and autoremove takes DKMS. The compiler and the running kernel's
+# headers stay: libdpkg-perl recommends a C compiler, and apt keeps the
+# running kernel's headers.
+set -e
+[ "$(id -u)" = 0 ] || { echo "Run this with sudo." >&2; exit 1; }
+exec apt-get purge --autoremove "$@" tekne-nvidia tekne-nvidia-repo \
+	'?source-package("^(nvidia-graphics-drivers|nvidia-kmod-open|nvidia-modprobe|egl-wayland2|egl-x11|nvidia-egl-gbm)$")'

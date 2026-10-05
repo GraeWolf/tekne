@@ -4,4 +4,5 @@
 	dh $@
 
 execute_after_dh_fixperms:
-	chmod 0755 debian/tekne-nvidia/usr/bin/tekne-prime-run
+	chmod 0755 debian/tekne-nvidia/usr/bin/tekne-prime-run \
+		debian/tekne-nvidia/usr/sbin/tekne-nvidia-remove

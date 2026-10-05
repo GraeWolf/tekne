@@ -136,12 +136,20 @@ minutes and needs about 1 GiB, then sets it up for Tekne. Reboot afterwards.
   powered when plugged in. Outputs wired to the NVIDIA GPU (often HDMI) don't
   work yet; outputs on the integrated GPU do.
 
-To go back to `nouveau`, purge both packages and reboot. `--autoremove` purges
-the driver packages too, including the configuration that blacklists `nouveau`:
+To go back to `nouveau`, remove the driver with `tekne-nvidia-remove`, then
+reboot. It purges both packages and everything built from the driver's source
+packages, including the configuration that blacklists `nouveau`; apt lists it all
+and asks first:
 
 ```sh
-sudo apt purge --autoremove tekne-nvidia tekne-nvidia-repo
+sudo tekne-nvidia-remove
 ```
+
+`apt purge --autoremove tekne-nvidia` alone would leave most of the driver
+installed. GTK 4 needs `libvulkan1`, which recommends a Vulkan driver, and apt
+keeps every installed Vulkan driver it could use, NVIDIA's included. The compiler
+and the running kernel's headers stay installed afterwards (apt keeps those), as
+does the module-signing key DKMS made in `/var/lib/dkms/`.
 
 ### APT repositories
 

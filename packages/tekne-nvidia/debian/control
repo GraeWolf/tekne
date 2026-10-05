@@ -25,4 +25,4 @@ Description: NVIDIA's display driver, set up for Tekne (opt-in)
  Suspend and hibernate use the driver's kernel notifiers, with no systemd.
  .
  Open kernel modules only: Turing (GTX 16xx, RTX 20xx) and newer GPUs.
- Purge it, and the driver's packages, to go back to nouveau.
+ "sudo tekne-nvidia-remove" removes it and the driver, back to nouveau.

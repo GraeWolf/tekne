@@ -18,9 +18,9 @@ is checked on real hardware (docs/testing.md).
      nvidia-persistenced wasn't installed, and that no systemd package was.
   3. Reboot and run install.py's checks: installed-checks.sh (which also
      checks there's no systemd package), hibernate and resume.
-  4. Purge both packages the documented way (apt-get purge --autoremove) and
-     check nothing of the driver is left: no NVIDIA package, no NVIDIA source,
-     no nouveau blacklist.
+  4. Remove it the documented way (tekne-nvidia-remove) and check nothing of
+     the driver is left: no NVIDIA package, no NVIDIA source, no nouveau
+     blacklist. A plain "apt purge --autoremove" isn't enough (see the script).
   5. Reboot and run install.py's checks again.
 
 Needs network access, like the build. Work files go to out/nvidia-test/ and
@@ -74,13 +74,20 @@ PURGE_GUEST = r"""
 set -u
 export DEBIAN_FRONTEND=noninteractive
 # The documented way back to nouveau (docs/customizing.md).
-apt-get purge -y --autoremove tekne-nvidia tekne-nvidia-repo >/tmp/purge.log 2>&1 \
+tekne-nvidia-remove -y >/tmp/purge.log 2>&1 \
 	&& echo PURGE=ok || { echo PURGE=failed; tail -n 30 /tmp/purge.log; }
 # firmware-nvidia-graphics is Devuan's firmware (DEC-013), not the driver's.
 echo "LEFT=$(dpkg-query -W -f '${Package} ${db:Status-Status}\n' '*nvidia*' 2>/dev/null \
 	| awk '$2 == "installed" && $1 != "firmware-nvidia-graphics"' | tr '\n' ' ')"
 echo "NVIDIA_SOURCE=$([ -e /etc/apt/sources.list.d/tekne-nvidia.sources ] && echo present || echo gone)"
 echo "BLACKLIST=$(grep -ls 'blacklist nouveau' /etc/modprobe.d/*.conf | tr '\n' ' ')"
+# If anything is left, say why: manual marks, and what apt's autoremover
+# follows to reach nvidia-driver.
+if dpkg-query -W -f '${db:Status-Status}' nvidia-driver 2>/dev/null | grep -qx installed; then
+	echo "--- manual: $(apt-mark showmanual | grep -iE 'nvidia|cuda|egl|vulkan|glx' | tr '\n' ' ')"
+	apt-get -s -o Debug::pkgAutoRemove=1 autoremove 2>&1 \
+		| grep -E 'Following dep: .*(nvidia|egl|vulkan|glx|vdpau)|Marking: .*nvidia' | head -40 | sed 's/^/--- /'
+fi
 """
 
 
@@ -196,6 +203,8 @@ def main():
         for key, want in [("PURGE", "ok"), ("LEFT", ""), ("NVIDIA_SOURCE", "gone"), ("BLACKLIST", "")]:
             if r and r.get(key, "").strip() != want:
                 problems.append(f"purge: {key}: got {r.get(key)!r}, want {want!r}")
+        if problems and r:
+            print(output)
         if not problems:
             problems += check(mode, luks, disk, vars_path, workdir, "purged")
 

@@ -394,7 +394,7 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **What:** two opt-in packages, published in Tekne's repository (DEC-040), neither in the ISO nor installed by default:
   - `tekne-nvidia-repo` adds NVIDIA's Debian 13 repository: its source, its key and an APT pin, held to DEC-026's rules.
   - `tekne-nvidia` then installs NVIDIA's driver from that repository and adds what Tekne needs on top.
-  - Users run `sudo apt install tekne-nvidia-repo`, then `sudo apt update && sudo apt install tekne-nvidia`. A helper command may wrap these steps. Purging both returns to `nouveau`.
+  - Users run `sudo apt install tekne-nvidia-repo`, then `sudo apt update && sudo apt install tekne-nvidia`. `sudo tekne-nvidia-remove` returns to `nouveau`.
 - **Why:**
   - The development laptop's discrete GPU (RTX 3060, Ampere) runs on `nouveau`.
   - Devuan's only driver, 550.163.01, doesn't build for Tekne's kernel. The backports package (`-4~bpo13+1`) supports kernels up to 6.17, and Tekne runs 7.1 (DEC-036). Debian's fixes for 6.19 and 7.0 (`-5`, `-5.1`) are only in sid and forky.
@@ -408,6 +408,7 @@ When a decision changes, edit the entry in place and add a dated line to its
   - **Suspend and hibernate need no hook.** NVIDIA's own `/etc/modprobe.d/nvidia.conf` sets `NVreg_UseKernelSuspendNotifiers=1`, `NVreg_PreserveVideoMemoryAllocations=1`, `NVreg_TemporaryFilePath=/var/tmp` and S0ix support, so the kernel saves video memory itself, with no `nvidia-sleep.sh` and no service.
   - **Modprobe options** (`tekne-nvidia`): `NVreg_DynamicPowerManagement=0x02`, so the idle GPU powers off, and `nvidia-drm` `modeset=1`.
   - **udev:** NVIDIA's `60-nvidia.rules` enables runtime power management for the GPU but not for its HDMI audio function, which must suspend too before the GPU can power off. `tekne-nvidia` adds that rule.
+  - **`tekne-nvidia-remove`** removes it all, back to `nouveau`. It purges both packages and everything built from the driver's six source packages by name. `apt purge --autoremove tekne-nvidia` would leave most of the driver: GTK 4 needs `libvulkan1`, which recommends `mesa-vulkan-drivers | vulkan-icd`, and apt's autoremover keeps every installed provider of a recommended virtual package, so NVIDIA's Vulkan driver, and through it the rest, stays (found by `tests/smoke/nvidia.py`).
   - **`tekne-prime-run CMD`** runs a program on the NVIDIA GPU (PRIME render offload). X stays on the integrated GPU, so a missing or broken module costs offload, not the desktop.
   - **Every build compiles NVIDIA's open module against the kernel the ISO ships.** The source is NVIDIA's `nvidia-kernel-open-dkms`, verified by the repository's signature with the pinned key. A backports kernel that breaks the driver can't reach a release unnoticed.
   - **The installer** prints a hint when it sees an NVIDIA GPU, but doesn't install the driver.
