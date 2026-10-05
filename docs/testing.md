@@ -68,6 +68,32 @@ power down when idle but can cause trouble on some models. Check:
    and repeat the checklist. If that fixes it, Tekne should blacklist
    `nouveau` by default; record the decision in DECISIONS.md.
 
+### NVIDIA's driver (`tekne-nvidia`)
+
+On an installed system, after installing NVIDIA's driver the way
+[customizing.md](customizing.md) describes (DEC-041). It supports Turing (GTX 16xx,
+RTX 20xx) and newer GPUs. CI checks that the packages install and purge cleanly
+in QEMU (`tests/smoke/nvidia.py`), but only real hardware can check the driver:
+
+1. **Module:** after a reboot, `lsmod | grep -E '^nvidia'` lists `nvidia`,
+   `nvidia_modeset` and `nvidia_drm`, and `lsmod | grep nouveau` lists nothing.
+   `/usr/sbin/dkms status` shows the module `installed` for `uname -r`.
+2. **Offload:** `tekne-prime-run glxinfo -B | grep vendor` reports NVIDIA, and plain
+   `glxinfo -B` reports the integrated GPU (`glxinfo` is in `mesa-utils`).
+3. **Power:** on battery, the GPU's `power/runtime_status` (see above) says
+   `suspended` a minute after the last offloaded program exits, and
+   `/proc/driver/nvidia/gpus/*/power` says "Video Memory: Off". On AC it stays
+   `active`: TLP keeps it powered there (a known limitation, DEC-041).
+4. **Suspend and hibernate,** on AC and on battery: the session resumes and every
+   keyboard works. (ASUS N-KEY keyboards need DEC-044's hook, which tekne-config
+   ships.)
+5. **A kernel upgrade:** after `apt upgrade` brings a new backports kernel, DKMS
+   builds the module for it (step 1 after rebooting).
+6. **External monitors:** outputs wired to the integrated GPU work. Outputs wired to
+   the NVIDIA GPU (often HDMI) don't yet (DEC-041); note which ones.
+7. **Back to nouveau:** `sudo apt purge --autoremove tekne-nvidia tekne-nvidia-repo`,
+   then reboot. `nouveau` is loaded again.
+
 ## Before installing on a machine you depend on
 
 The installer erases the whole disk (DEC-005): there's no dual-boot option.

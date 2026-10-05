@@ -140,6 +140,7 @@ Output goes to `out/` (git-ignored):
   - `tests/smoke/live-boot.py`: the live image boots on BIOS and UEFI, a login prompt appears, and the no-systemd runtime check passes.
   - `tests/smoke/repo.py`: in the live image, apt accepts the build's test repository only with its key, refuses a tampered `.deb`, and the shipped pin keeps everything but `tekne-*` at -1 (DEC-040).
   - `tests/smoke/upgrade.py`: installs the previous release from its published ISO (pinned in `tests/smoke/previous-release`), upgrades it to the current build with `apt upgrade` from the build's test repository, reboots and re-runs `install.py`'s checks, hibernate/resume included (DEC-040). It can also start from a kept `install.py` case.
+  - `tests/smoke/nvidia.py`: installs the ISO (UEFI and LUKS), installs `tekne-nvidia-repo` and `tekne-nvidia` from the build's test repository and NVIDIA's, checks the driver and DKMS module and that no systemd package came with them, reruns `install.py`'s checks, then purges both the documented way and checks again (DEC-041).
   - `tests/smoke/install.py`: install matrix, {BIOS, UEFI} × {plain, LUKS} = 4 unattended installs (answers file via QEMU fw_cfg, [docs/installer.md](docs/installer.md) §6). Each installed system must boot to a login prompt and pass `tests/smoke/installed-checks.sh`. `tests/smoke/qemu_serial.py` holds the shared QEMU and serial-console code.
 - `tests/key-rotation.sh`: the signing-subkey rotation in `docs/building.md`, with throwaway keys and APT, in the build container on every build (DEC-040).
 - Manual QA checklist in `docs/testing.md`, for things that are hard to automate on real hardware: Wi-Fi, audio, suspend/resume, hibernate/resume, backlight, external monitors.
@@ -204,7 +205,7 @@ tekne/
 │   ├── key-rotation.sh            # the signing-subkey rotation, with throwaway keys (DEC-040)
 │   ├── systemd-allowlist.txt
 │   └── smoke/                     # serial-console tests: live-boot.py, repo.py, install.py,
-│                                  # upgrade.py, installed-checks.sh, qemu_serial.py
+│                                  # upgrade.py, nvidia.py, installed-checks.sh, qemu_serial.py
 └── docs/
     ├── building.md
     ├── customizing.md

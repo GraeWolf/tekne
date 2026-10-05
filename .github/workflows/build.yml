@@ -91,6 +91,9 @@ jobs:
       - name: Upgrade test (previous release to this build, through apt)
         run: tests/smoke/upgrade.py
 
+      - name: NVIDIA packages test (install, check, purge; DEC-041)
+        run: tests/smoke/nvidia.py
+
       - name: Upload the ISO
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -117,6 +120,7 @@ jobs:
             out/serial-*.log
             out/install-test/**/serial-*.log
             out/upgrade-test/**/serial-*.log
+            out/nvidia-test/**/serial-*.log
           if-no-files-found: ignore
           retention-days: 30
 
