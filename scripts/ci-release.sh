@@ -33,7 +33,7 @@ field() { sed -n "s/^$1: //p" "${INFO}"; }
 #    the live image. Each must match the checksum the build recorded.
 FILES="${DIR}/${NAME}.iso ${DIR}/${NAME}.iso.sha256 ${DIR}/${NAME}.packages ${INFO}"
 PKG_VERSION="$(field package_version)"
-for p in tekne-apt-sources tekne-branding tekne-config tekne-desktop; do
+for p in tekne-apt-sources tekne-branding tekne-config tekne-desktop tekne-nvidia-repo tekne-nvidia; do
 	deb="${DIR}/packages/${p}_${PKG_VERSION}_all.deb"
 	[ -f "${deb}" ] || die "${deb} missing"
 	want="$(field deb | awk -v f="$(basename "${deb}")" '$1 == f { print $2 }')"

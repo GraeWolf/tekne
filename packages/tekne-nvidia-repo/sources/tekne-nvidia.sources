@@ -1,0 +1,8 @@
+# NVIDIA's Debian 13 repository, for the display driver only (DEC-041,
+# DEC-026). Shipped by tekne-nvidia-repo; the pin in
+# /etc/apt/preferences.d/tekne-nvidia.pref stops it providing anything else.
+# A flat repository: no suite or component.
+Types: deb
+URIs: https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/
+Suites: /
+Signed-By: /usr/share/tekne/keyrings/nvidia.gpg

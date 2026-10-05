@@ -1,0 +1,10 @@
+#!/bin/sh
+# Runs a program on the NVIDIA GPU (PRIME render offload, DEC-041). The desktop
+# stays on the integrated GPU; only this program's OpenGL and Vulkan go to the
+# NVIDIA GPU, which powers back off when it's done.
+#   tekne-prime-run COMMAND [ARGS...]
+[ $# -gt 0 ] || { echo "usage: tekne-prime-run COMMAND [ARGS...]" >&2; exit 2; }
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export __VK_LAYER_NV_optimus=NVIDIA_only
+exec "$@"

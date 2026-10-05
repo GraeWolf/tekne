@@ -1,0 +1,7 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+execute_after_dh_fixperms:
+	chmod 0755 debian/tekne-nvidia/usr/bin/tekne-prime-run

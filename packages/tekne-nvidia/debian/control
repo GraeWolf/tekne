@@ -1,0 +1,28 @@
+Source: tekne-nvidia
+Section: x11
+Priority: optional
+Maintainer: Tekne project <noreply@tekne.invalid>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: tekne-nvidia
+Architecture: all
+# The driver comes from NVIDIA's repository (tekne-nvidia-repo, DEC-041):
+# open kernel modules only, for Turing and newer GPUs. Devuan's own 550 is
+# older than 615 and doesn't build for Tekne's kernel, so it can't satisfy
+# these. The kernel headers come from excalibur-backports (DEC-036) for DKMS.
+Depends: ${misc:Depends},
+ tekne-nvidia-repo,
+ nvidia-driver (>= 615),
+ nvidia-kernel-open-dkms (>= 615),
+ linux-headers-amd64
+Description: NVIDIA's display driver, set up for Tekne (opt-in)
+ Installs NVIDIA's current display driver from NVIDIA's repository (through
+ tekne-nvidia-repo) and sets it up for Tekne's hybrid-graphics laptops:
+ the desktop stays on the integrated GPU, the NVIDIA GPU powers off when
+ idle, and tekne-prime-run runs a program on it (PRIME render offload).
+ Suspend and hibernate use the driver's kernel notifiers, with no systemd.
+ .
+ Open kernel modules only: Turing (GTX 16xx, RTX 20xx) and newer GPUs.
+ Purge it, and the driver's packages, to go back to nouveau.

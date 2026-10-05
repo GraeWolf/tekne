@@ -29,6 +29,9 @@ MODE="${1:?usage: $0 fetch|build WORK}"
 WORK="${2:?usage: $0 fetch|build WORK}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 PACKAGES="tekne-apt-sources tekne-branding tekne-config tekne-desktop"
+# From 0.3 (DEC-041): published when a release has them, checked the same way.
+# Releases from before 0.3 don't, and still count.
+OPTIONAL_PACKAGES="tekne-nvidia-repo tekne-nvidia"
 
 fetch() {
 	mkdir -p "${WORK}"
@@ -89,7 +92,10 @@ PY
 		fi
 		check_release "${tag}" "${dl}"
 		local p
-		for p in ${PACKAGES}; do cp "${dl}/${p}_"*.deb "${WORK}/${suite}/"; done
+		for p in ${PACKAGES} ${OPTIONAL_PACKAGES}; do
+			[ -e "${dl}/${p}_"*.deb ] || continue
+			cp "${dl}/${p}_"*.deb "${WORK}/${suite}/"
+		done
 	done < "${WORK}/suites"
 }
 
@@ -101,15 +107,20 @@ check_release() {
 	[ -f "${info}" ] || die "${tag}: no build-info.txt"
 	[ "$(field version)" = "${tag#v}" ] || die "${tag}: build-info.txt says version $(field version)"
 	[ "$(field git_dirty)" = no ] || die "${tag}: build-info.txt says the tree was dirty"
-	local pkgver p deb pkg name want got found
+	local pkgver p deb pkg name want got found checked=0
 	pkgver="$(field package_version)"
-	for p in ${PACKAGES}; do
+	for p in ${PACKAGES} ${OPTIONAL_PACKAGES}; do
 		# GitHub renames assets with special characters ("~" becomes "."), so
 		# a release's file may not keep the name build-info.txt records. Find
 		# it by what's inside, check it under its real name, and restore that.
 		name="${p}_${pkgver}_all.deb"
 		want="$(field deb | awk -v f="${name}" '$1 == f { print $2 }')"
-		[ -n "${want}" ] || die "${tag}: build-info.txt has no checksum for ${name}"
+		if [ -z "${want}" ]; then
+			case " ${OPTIONAL_PACKAGES} " in
+				*" ${p} "*) continue ;;	# a release from before the package existed
+			esac
+			die "${tag}: build-info.txt has no checksum for ${name}"
+		fi
 		found=""
 		for deb in "${dir}/${p}_"*.deb; do
 			[ -e "${deb}" ] || continue
@@ -123,8 +134,9 @@ check_release() {
 		done
 		[ -n "${found}" ] || die "${tag}: ${name} missing"
 		[ "${found}" = "${dir}/${name}" ] || mv "${found}" "${dir}/${name}"
+		checked=$((checked + 1))
 	done
-	echo "ci-publish-repo: ${tag}: $(echo ${PACKAGES} | wc -w) packages match build-info.txt"
+	echo "ci-publish-repo: ${tag}: ${checked} packages match build-info.txt"
 }
 
 build() {

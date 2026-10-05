@@ -33,11 +33,14 @@ done
 # config/packages.chroot/ during its package-list step, before the third-party
 # repositories exist, so tekne-desktop goes into the chroot as a plain file
 # instead; config/hooks/normal/0500-tekne-desktop.hook.chroot installs it.
+# tekne-nvidia-repo and tekne-nvidia stay out of the image altogether: they're
+# opt-in, published in Tekne's repository only (DEC-041).
 /src/scripts/build-packages.sh /src/packages /out/packages "${TEKNE_PKG_VERSION}" 2>&1 | tee /out/build.log
 mkdir -p "${WORK}/config/packages.chroot" "${WORK}/config/includes.chroot/var/cache/tekne"
 for deb in /out/packages/*.deb; do
 	case "$(basename "${deb}")" in
 		tekne-desktop_*) cp "${deb}" "${WORK}/config/includes.chroot/var/cache/tekne/" ;;
+		tekne-nvidia*)   ;;
 		*)                cp "${deb}" "${WORK}/config/packages.chroot/" ;;
 	esac
 done
@@ -98,7 +101,7 @@ cat /out/build-info.txt
 echo "==> Building the test repository" | tee -a /out/build.log
 TR="$(mktemp -d)"
 mkdir -p "${TR}/debs" "${TR}/decoy/DEBIAN" /out/test-repo
-cp /out/packages/tekne-{apt-sources,branding,config,desktop}_*.deb "${TR}/debs/"
+cp /out/packages/tekne-{apt-sources,branding,config,desktop,nvidia-repo,nvidia}_*.deb "${TR}/debs/"
 printf '%s\n' "Package: base-files" "Version: 99:0" "Architecture: all" \
 	"Maintainer: Tekne project <noreply@tekne.invalid>" \
 	"Description: decoy for tests/smoke/repo.py; must never be installed" > "${TR}/decoy/DEBIAN/control"

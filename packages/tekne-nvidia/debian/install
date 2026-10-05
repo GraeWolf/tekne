@@ -1,0 +1,3 @@
+files/etc/modprobe.d/tekne-nvidia.conf etc/modprobe.d/
+files/usr/lib/udev/rules.d/80-tekne-nvidia-pm.rules usr/lib/udev/rules.d/
+files/usr/bin/tekne-prime-run usr/bin/

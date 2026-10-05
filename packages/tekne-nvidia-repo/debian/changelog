@@ -1,0 +1,7 @@
+tekne-nvidia-repo (0.3~rc1) unstable; urgency=medium
+
+  * Initial release: NVIDIA's Debian 13 repository for the display driver,
+    with a checksum-pinned key scoped by Signed-By and a pin limited to the
+    driver's source packages (DEC-041).
+
+ -- Tekne project <noreply@tekne.invalid>  Mon, 05 Oct 2026 12:00:00 +0000

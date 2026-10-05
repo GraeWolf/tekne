@@ -1,0 +1,3 @@
+keys/nvidia.gpg usr/share/tekne/keyrings/
+sources/tekne-nvidia.sources etc/apt/sources.list.d/
+preferences/tekne-nvidia.pref etc/apt/preferences.d/

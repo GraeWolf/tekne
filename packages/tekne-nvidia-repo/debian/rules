@@ -1,0 +1,8 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+# DEC-026: the build fails if the stored key doesn't match its recorded checksum.
+override_dh_auto_build:
+	cd keys && sha256sum --check --strict SHA256SUMS

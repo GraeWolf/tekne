@@ -1,0 +1,19 @@
+Source: tekne-nvidia-repo
+Section: admin
+Priority: optional
+Maintainer: Tekne project <noreply@tekne.invalid>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: tekne-nvidia-repo
+Architecture: all
+Depends: ${misc:Depends}
+Description: NVIDIA's APT repository, for tekne-nvidia (opt-in)
+ Adds NVIDIA's Debian 13 repository, which tekne-nvidia installs NVIDIA's
+ display driver from. Its signing key is scoped to that repository with
+ Signed-By, and an APT pin admits only the driver's own source packages:
+ nothing else NVIDIA publishes (CUDA included) can be installed from it.
+ .
+ Install this, run "apt update", then install tekne-nvidia. Systems
+ without it never contact NVIDIA's server.

@@ -1,0 +1,7 @@
+tekne-nvidia (0.3~rc1) unstable; urgency=medium
+
+  * Initial release: NVIDIA's display driver from NVIDIA's repository, with
+    runtime power management for the GPU's audio function, modprobe options
+    and tekne-prime-run (DEC-041).
+
+ -- Tekne project <noreply@tekne.invalid>  Mon, 05 Oct 2026 12:00:00 +0000
