@@ -182,13 +182,13 @@ When a decision changes, edit the entry in place and add a dated line to its
 ### DEC-025 Desktop component selection
 - **Status:** Decided. Phase 2 verified every package: each exists in Excalibur (or a DEC-026 repository) and passes the no-systemd rule.
 - The component table and keybindings in [docs/desktop-stack.md](docs/desktop-stack.md) are the source of truth. This entry covers the choices not recorded elsewhere, such as the bar, launcher, notifications, compositor, lock screen, terminal, file manager, editor, and keybindings.
-- **History:** 2026-09-28 recorded as Proposed. Same day, the maintainer revised it (XLibre, nautilus, neovim, no nm-applet, new keybindings) and it was marked Decided. Same day, the file manager was reverted from nautilus to thunar, to avoid nautilus's large GNOME dependency tree and its file indexer. Same day (Phase 2), the maintainer chose CopyQ to replace `clipmenu`, which isn't packaged in Excalibur. 2026-09-29: the Phase 2 package check is complete (see docs/desktop-stack.md).
+- **History:** 2026-09-28 recorded as Proposed. Same day, the maintainer revised it (XLibre, nautilus, neovim, no nm-applet, new keybindings) and it was marked Decided. Same day, the file manager was reverted from nautilus to thunar, to avoid nautilus's large GNOME dependency tree and its file indexer. Same day (Phase 2), the maintainer chose CopyQ to replace `clipmenu`, which isn't packaged in Excalibur. 2026-09-29: the Phase 2 package check is complete (see docs/desktop-stack.md). 2026-10-05: `tlp` installs its sleep hook in `/usr/lib/elogind/system-sleep/`, but Devuan's elogind 255 runs hooks only from `/usr/libexec/system-sleep/` and `/etc/elogind/system-sleep/`, so TLP's suspend/resume handling never ran on Tekne (found in the Phase 11 spike). The maintainer chose to have `tekne-config` add a link in `/usr/libexec/system-sleep/` (SPEC §9 Phase 12), and to report it to Devuan.
 
 ### DEC-026 Third-party APT repositories
 - **Status:** Decided
 - **Policy:** An outside repository (anything other than Devuan's) is allowed only if all of these hold:
   1. Its signing key is stored in this repo, and the build checks it against a recorded SHA-256 checksum.
-  2. Its `.sources` entry uses `Signed-By:` for that key alone and ships in the `tekne-apt-sources` package, not as a loose file. It stays enabled on installed systems, so they receive updates.
+  2. Its `.sources` entry uses `Signed-By:` for that key alone and ships in the `tekne-apt-sources` package, not as a loose file. A repository needed only by an opt-in feature may ship instead in that feature's own opt-in Tekne package, so systems without the feature never contact it (from 0.3: `tekne-nvidia-repo`, DEC-041). Either way it stays enabled on installed systems that have it, so they receive updates.
   3. An `/etc/apt/preferences.d/` pin restricts it to the packages we want from it. Everything else from it gets priority -1, so it can't replace Devuan packages.
   4. Its packages pass the no-systemd rule (SPEC §4), like any other package.
   5. No package from that repository may leave its key somewhere APT trusts for every repository (such as `/etc/apt/trusted.gpg.d/`). Keeping each key scoped is the whole point of rule 2. Brave's `brave-keyring` links its key there from its postinst, unless it finds Brave's own sources file (`brave-browser-release.sources` with `Signed-By: /usr/share/keyrings/brave-browser-archive-keyring.gpg`). So `tekne-apt-sources` ships exactly that file, puts Tekne's checksum-pinned key at that path, and diverts `brave-keyring`'s copy of the key aside. The build fails if any globally trusted key isn't owned by `devuan-keyring` or `debian-archive-keyring`.
@@ -196,9 +196,10 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **Current repositories:**
   - Brave (for `brave-origin*`, DEC-028)
   - XLibre for Devuan (for `xlibre*`/`xserver-xlibre*`, DEC-027)
+  - From 0.3, opt-in: NVIDIA's Debian 13 repository, for the display driver's six source packages only, through `tekne-nvidia-repo` (DEC-041)
   - Devuan `excalibur-backports` was expected to be needed for XLibre, but isn't: every Phase 2 build resolved XLibre 25.2 from Excalibur stable alone. It's enabled for the kernel only (DEC-036). It's Devuan's own archive rather than a third party, but it's scoped the same way: a `.sources` entry in `tekne-apt-sources` with `Signed-By` Devuan's key, and a pin limited to the kernel packages.
 - **Why:** Some chosen components aren't in Devuan stable. This doesn't conflict with DEC-006, which is about Tekne hosting its *own* repository. Tekne's own repository (DEC-040, from 0.2) follows these same rules.
-- **History:** 2026-09-28 decided. Same day (Phase 2), added rule 5 after finding that `brave-keyring` installs a globally trusted key, and recorded how the build applies the policy. 2026-09-30: `excalibur-backports` enabled for the kernel (DEC-036).
+- **History:** 2026-09-28 decided. Same day (Phase 2), added rule 5 after finding that `brave-keyring` installs a globally trusted key, and recorded how the build applies the policy. 2026-09-30: `excalibur-backports` enabled for the kernel (DEC-036). 2026-10-05: rule 2 now allows an opt-in feature package to carry its repository, for NVIDIA's (DEC-041).
 
 ### DEC-027 X server: XLibre
 - **Status:** Decided, verified on real hardware
@@ -206,9 +207,9 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **Source:** The XLibre Devuan repository (`xlibre-debian.github.io/devuan`). XLibre's docs say Excalibur needs backports, but Phase 2 builds resolve without them. Its packages are signed by an individual volunteer's key (DEC-026 applies). Devuan maintainers are working on first-party packages. Switch to those when they reach Devuan stable.
 - **Risks:**
   - It depends on a volunteer-run repository.
-  - Compatibility with the proprietary NVIDIA driver is undocumented. The 0.3 spike tests it (DEC-041, SPEC §9 Phase 11).
+  - The proprietary NVIDIA driver works for PRIME offload: XLibre 25.2 "implicitly ignor[es the] abi mismatch" for maintained NVIDIA branches and loads NVIDIA 615's DDX (Phase 11 spike, DEC-041). Rootless, the DDX can't get modesetting permission, so outputs wired to the NVIDIA GPU don't work (DEC-041).
   - The fallback is Devuan's `xserver-xorg`, a package-list change only.
-- **History:** 2026-09-28 decided (maintainer edit to desktop-stack.md). 2026-09-29: verified on the development laptop (AMD GPU on the internal and an external display, with the NVIDIA GPU on `nouveau`). 2026-10-03: NVIDIA compatibility is to be tested in 0.3's Phase 11 (DEC-041). If it fails, the fallback above comes back to the maintainer.
+- **History:** 2026-09-28 decided (maintainer edit to desktop-stack.md). 2026-09-29: verified on the development laptop (AMD GPU on the internal and an external display, with the NVIDIA GPU on `nouveau`). 2026-10-03: NVIDIA compatibility is to be tested in 0.3's Phase 11 (DEC-041). If it fails, the fallback above comes back to the maintainer. 2026-10-05: the spike found offload working with NVIDIA 615, so no fallback is needed. X's libseat backend is now logind (DEC-045).
 
 ### DEC-028 Browsers: Brave Origin (default) + Firefox ESR (fallback)
 - **Status:** Decided
@@ -307,8 +308,9 @@ When a decision changes, edit the entry in place and add a dated line to its
   - `tests/smoke/install.py` checks installed systems run the backports kernel.
 - **Trade-offs:** Debian's security team doesn't formally cover backports; the kernel team updates backports kernels, usually shortly after stable. A new kernel series arrives every few months, so there's more change than on stable; the QEMU install tests (including hibernate/resume) are the guard. Firmware stays at stable's versions.
 - **Fallback:** removing the pin and reinstalling `linux-image-amd64` from stable is a package change only.
-- **NVIDIA (from 0.3):** the pin also covers the NVIDIA driver packages that `tekne-nvidia` depends on (DEC-041), because the backports driver is the one built for the backports kernel. The exact package names come from the 0.3 spike. They're installed only on systems that install `tekne-nvidia`.
-- **History:** 2026-09-30 decided by the maintainer, after the backports kernel fixed the development laptop's keyboard. 2026-10-03: the maintainer agreed to extend the pin to the NVIDIA driver packages for `tekne-nvidia` (DEC-041). It takes effect when that package is built (SPEC §9 Phase 13).
+- **Archive transitions:** when Debian moves `trixie-backports` to a new kernel series, the archive can be inconsistent for a while. On 2026-10-03 to 05, `linux-image-amd64` 7.1.13 still depended on `linux-base-` and `linux-modules-7.1.13…`, which had already gone with the move to 7.2.6. `0505-backports-kernel` then fails, and so does every build, locally and in CI, until Debian finishes. CI run 37155495922 failed this way. Re-run once the archive is consistent.
+- **NVIDIA:** `tekne-nvidia` gets its driver from NVIDIA's repository, not backports (DEC-041), so this pin covers only the kernel. Each new backports kernel must still build NVIDIA's DKMS module, which the build checks.
+- **History:** 2026-09-30 decided by the maintainer, after the backports kernel fixed the development laptop's keyboard. 2026-10-03: the maintainer agreed to extend the pin to the NVIDIA driver packages for `tekne-nvidia` (DEC-041). It takes effect when that package is built (SPEC §9 Phase 13). 2026-10-05: that extension is withdrawn: backports' 550 driver doesn't build on 7.1, and DEC-041 now uses NVIDIA's repository. Recorded the 7.1.13 → 7.2.6 archive transition that broke builds.
 
 ### DEC-037 Styled text boot and LUKS prompt
 - **Status:** Decided
@@ -354,7 +356,7 @@ When a decision changes, edit the entry in place and add a dated line to its
   - `tekne-apt-sources` ships its public key, checked against `keys/SHA256SUMS`.
   - Its `.sources` entry uses `Signed-By` with that key alone.
   - An `/etc/apt/preferences.d/` pin, `tekne.pref`, limits it to `tekne-*` packages. Everything else from it gets priority -1. The pin matches the repository's signed `Origin: Tekne` (`o=Tekne`) rather than its host name, so the tests can serve the repository from anywhere and still exercise the shipped pin.
-  - It carries `tekne-apt-sources`, `tekne-branding`, `tekne-config` and `tekne-desktop`. `tekne-installer` belongs only in the live image, and Devuan packages are never mirrored. From 0.3 it also carries `tekne-nvidia` (DEC-041), which is published but not in the ISO.
+  - It carries `tekne-apt-sources`, `tekne-branding`, `tekne-config` and `tekne-desktop`. `tekne-installer` belongs only in the live image, and Devuan packages are never mirrored. From 0.3 it also carries `tekne-nvidia-repo` and `tekne-nvidia` (DEC-041), which are published but not in the ISO.
 - **Hosting:** GitHub Pages for this repository, next to the releases (DEC-020). The four packages total about 350 KB per release. Installed systems contact GitHub on `apt update`, as they already do for XLibre's repository. The URL is written into every installed system, so moving it later needs a `tekne-apt-sources` update that runs while the old URL still answers.
 - **Suites** (one `main` component each):
   - `excalibur`: releases. `tekne-apt-sources` points here.
@@ -384,25 +386,38 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **Alternatives:**
   - Sign `InRelease` locally with the offline key, with CI only uploading. That keeps the key off GitHub entirely, but every release needs a manual signing step.
   - A domain of the maintainer's own pointed at Pages, so the hosting could move without touching installed systems. Not wanted for now.
-- **History:** 2026-10-01 proposed (SPEC §8) and decided by the maintainer: a CI-held signing subkey behind an approval gate, the `github.io` address, and a pre-release suite. 2026-10-02: the maintainer created the key, moved the primary key offline, and set up the `repo-publish` environment, its secrets and Pages; the fingerprints are recorded above. Same day, the first signing subkey (`0565…`) was exposed: a terminal read in a Claude Code session returned its passphrase-protected private block into the session transcript. It had signed nothing, and nothing trusted it yet. The maintainer revoked it (reason: compromised), added `82C3…` from the offline primary, changed the passphrase on all keys, and replaced both CI secrets. This was a first run of the rotation steps. Same day (Phase 8): implemented, with the pin on `o=Tekne`, the build isolation through `config/apt/apt.conf`, and publishing split into `sign` and `deploy` jobs. 2026-10-03: 0.2-rc1 and then 0.2 published; GitHub renamed the rc's `.deb` assets (`~` to `.`), as anticipated. The development laptop moved from 0.1 through both with apt. Same day: the maintainer agreed SPEC §9 (0.3), which adds `tekne-nvidia` to the repository (DEC-041).
+- **History:** 2026-10-01 proposed (SPEC §8) and decided by the maintainer: a CI-held signing subkey behind an approval gate, the `github.io` address, and a pre-release suite. 2026-10-02: the maintainer created the key, moved the primary key offline, and set up the `repo-publish` environment, its secrets and Pages; the fingerprints are recorded above. Same day, the first signing subkey (`0565…`) was exposed: a terminal read in a Claude Code session returned its passphrase-protected private block into the session transcript. It had signed nothing, and nothing trusted it yet. The maintainer revoked it (reason: compromised), added `82C3…` from the offline primary, changed the passphrase on all keys, and replaced both CI secrets. This was a first run of the rotation steps. Same day (Phase 8): implemented, with the pin on `o=Tekne`, the build isolation through `config/apt/apt.conf`, and publishing split into `sign` and `deploy` jobs. 2026-10-03: 0.2-rc1 and then 0.2 published; GitHub renamed the rc's `.deb` assets (`~` to `.`), as anticipated. The development laptop moved from 0.1 through both with apt. Same day: the maintainer agreed SPEC §9 (0.3), which adds `tekne-nvidia` to the repository (DEC-041). 2026-10-05: and `tekne-nvidia-repo` (DEC-041's redesign).
 
-### DEC-041 NVIDIA proprietary driver: opt-in `tekne-nvidia`
-- **Status:** Decided, pending the Phase 11 spike (SPEC §9)
-- **What:** `tekne-nvidia` installs Devuan's proprietary NVIDIA driver and makes it work without systemd. It's published in Tekne's repository (DEC-040), not in the ISO and not installed by default. Users install it with `sudo apt install tekne-nvidia`, and purging it returns to `nouveau`.
+### DEC-041 NVIDIA proprietary driver: opt-in, from NVIDIA's repository
+- **Status:** Decided. Redesigned on 2026-10-05 after the Phase 11 spike (SPEC §9; `spike/phase11/README.md`).
+- **What:** two opt-in packages, published in Tekne's repository (DEC-040), neither in the ISO nor installed by default:
+  - `tekne-nvidia-repo` adds NVIDIA's Debian 13 repository: its source, its key and an APT pin, held to DEC-026's rules.
+  - `tekne-nvidia` then installs NVIDIA's driver from that repository and adds what Tekne needs on top.
+  - Users run `sudo apt install tekne-nvidia-repo`, then `sudo apt update && sudo apt install tekne-nvidia`. A helper command may wrap these steps. Purging both returns to `nouveau`.
 - **Why:**
   - The development laptop's discrete GPU (RTX 3060, Ampere) runs on `nouveau`.
-  - Debian's driver handles suspend and hibernate only through systemd units, so on Tekne nothing would call `nvidia-sleep.sh`.
-  - Installing the driver pulls in DKMS, a compiler and kernel headers, about 90 packages. That's too much to add to an ISO already at 1.85 GiB of GitHub's 2 GiB limit (DEC-020), and the installer needs no network (DEC-006).
-- **Version:** 550.163.01, the only branch in Devuan (and in Debian up to forky). It comes from `excalibur-backports` (`-4~bpo13+1` when decided), the build meant for the backports kernel, under DEC-036's pin. NVIDIA's own repository (570 and later) was the alternative, and would have been a third-party repository under DEC-026.
+  - Devuan's only driver, 550.163.01, doesn't build for Tekne's kernel. The backports package (`-4~bpo13+1`) supports kernels up to 6.17, and Tekne runs 7.1 (DEC-036). Debian's fixes for 6.19 and 7.0 (`-5`, `-5.1`) are only in sid and forky.
+  - Installing the driver pulls in DKMS, a compiler and kernel headers, 33 packages from NVIDIA plus the compiler toolchain. That's too much for an ISO already at 1.85 GiB of GitHub's 2 GiB limit (DEC-020), and the installer needs no network (DEC-006).
+- **Source:** `https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/`, a flat repository (`Suites: /`) with `Origin: NVIDIA`. 615.71.09 when decided.
+  - **Key:** signed by `0218 2E60 104F CDC2 6EAE 1B85 97A5 D4CB 8793 F200` ("Kitmaker (Debian 13 Trixie)"), pinned by checksum.
+  - **Pin:** admits only the driver's six source packages: `nvidia-graphics-drivers`, `nvidia-kmod-open`, `nvidia-modprobe`, `egl-wayland2`, `egl-x11` and `nvidia-egl-gbm`. It blocks `cuda-*` (which `cuda-drivers` shares a source package with) and puts everything else at -1, including NVIDIA's `nvidia-driver-pinning-*`, which would add its own pin.
+  - **Open kernel modules only.** From 615, `nvidia-kernel-dkms` is a transitional package for `nvidia-kernel-open-dkms`, so `tekne-nvidia` supports Turing (GTX 16xx, RTX 20xx) and newer GPUs.
+  - Installed with `--no-install-recommends` semantics: no `nvidia-persistenced` (it keeps the GPU initialised, so it never powers off), no `nvidia-settings`. `nvidia-powerd` is a hard dependency but ships only a systemd unit, so nothing starts it on Tekne. It's the optional Dynamic Boost daemon.
 - **Design:**
-  - Depends on `nvidia-driver`, `nvidia-kernel-dkms`, `firmware-nvidia-gsp` and `linux-headers-amd64`. Simulating the install on Excalibur pulled in no systemd package.
-  - An elogind sleep hook, `/usr/lib/elogind/system-sleep/tekne-nvidia`, calls `nvidia-sleep.sh` around suspend and hibernate. With no NVIDIA module loaded, it does nothing.
-  - Modprobe options: `NVreg_PreserveVideoMemoryAllocations=1`, a temporary file path on disk, and `NVreg_DynamicPowerManagement=0x02`, so the idle GPU powers off.
-  - `tekne-prime-run CMD` runs a program on the NVIDIA GPU (PRIME render offload). X stays on the integrated GPU, so a missing or broken module costs offload, not the desktop.
-  - Every build compiles the DKMS module against the kernel the ISO ships, so a backports kernel that breaks the driver can't reach a release unnoticed.
-  - The installer prints a hint when it sees an NVIDIA GPU, but doesn't install the driver.
-- **Spike (SPEC §9 Phase 11):** the design stands if, on the laptop, the backports driver builds against Tekne's kernel and works with XLibre (DEC-027) for offload, suspend, hibernate and runtime power-down. If XLibre doesn't work with it, the X server question goes back to the maintainer.
-- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q1: backports).
+  - **Suspend and hibernate need no hook.** NVIDIA's own `/etc/modprobe.d/nvidia.conf` sets `NVreg_UseKernelSuspendNotifiers=1`, `NVreg_PreserveVideoMemoryAllocations=1`, `NVreg_TemporaryFilePath=/var/tmp` and S0ix support, so the kernel saves video memory itself, with no `nvidia-sleep.sh` and no service.
+  - **Modprobe options** (`tekne-nvidia`): `NVreg_DynamicPowerManagement=0x02`, so the idle GPU powers off, and `nvidia-drm` `modeset=1`.
+  - **udev:** NVIDIA's `60-nvidia.rules` enables runtime power management for the GPU but not for its HDMI audio function, which must suspend too before the GPU can power off. `tekne-nvidia` adds that rule.
+  - **`tekne-prime-run CMD`** runs a program on the NVIDIA GPU (PRIME render offload). X stays on the integrated GPU, so a missing or broken module costs offload, not the desktop.
+  - **Every build compiles NVIDIA's open module against the kernel the ISO ships.** The source is NVIDIA's `nvidia-kernel-open-dkms`, verified by the repository's signature with the pinned key. A backports kernel that breaks the driver can't reach a release unnoticed.
+  - **The installer** prints a hint when it sees an NVIDIA GPU, but doesn't install the driver.
+- **Found by the spike, decided separately:**
+  - NVIDIA registers its GPU as needing a VT switch on every suspend (`pm_vt_switch_required`). Under seatd, X sometimes never got its seat back, which led to DEC-045.
+  - Deep s0i3 sleep reboots the ASUS keyboard's controller, which led to DEC-044.
+- **Known limitations (0.3):**
+  - **On AC the GPU never powers off.** TLP keeps every device whose driver isn't on its denylist powered on AC (`RUNTIME_PM_ON_AC=on`). On battery it powers off, which the spike measured. A generic fix is awkward, because the GPU's audio function shares `snd_hda_intel` with the AMD audio. Accepted and documented; revisit later.
+  - **Outputs wired to the NVIDIA GPU don't work.** On the development laptop that's the HDMI port. X loads NVIDIA's DDX, but it fails with "Failed to acquire modesetting permission" under both seatd and elogind (rootless X), so there's no NVIDIA X screen and no reverse PRIME. A test with X running as root will find the cause, but HDMI doesn't block 0.3.
+- **Alternatives:** Devuan's 550 from `excalibur-backports`, decided on 2026-10-03, which doesn't build for Tekne's kernel. Rebuilding Debian's `-5.1` for Excalibur and publishing it in Tekne's repository, which would make Tekne responsible for a non-Tekne package and its kernel compatibility.
+- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q1: backports). 2026-10-05: redesigned after the Phase 11 spike. Backports' 550 failed to build on 7.1 (`in_irq`, `vma->__vm_flags`). NVIDIA's 615 from its own repository built, and offload, idle power-off on battery, suspend and hibernate worked on the laptop with XLibre (DEC-027). The maintainer chose NVIDIA's repository under DEC-026, enabled by an opt-in `tekne-nvidia-repo` package; no sleep hook; the AC power limitation accepted; and HDMI not blocking 0.3.
 
 ### DEC-042 Autologin after LUKS
 - **Status:** Decided
@@ -422,3 +437,25 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **License:** MIT, with the bundled icon sets under their own permissive licences. All are recorded in `tekne-config`'s `debian/copyright`. The font isn't Tekne's artwork, so it stays out of `branding/` (DEC-034).
 - **Updating:** change the version and checksum in one commit, and note it in CHANGELOG.md, as for DEC-031's pins.
 - **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q3).
+
+### DEC-044 Hardware quirks
+- **Status:** Decided
+- **What:** workarounds for specific hardware ship in `tekne-config`. Each is matched to the exact device it fixes, so it does nothing on other machines. Each is listed here, and reported to the upstream project that should fix it, so it can be removed once the fix arrives.
+- **Why:** Tekne targets laptops, and some laptop hardware misbehaves in ways Devuan doesn't handle yet. A device-matched workaround in a package is safer than one in the docs that users have to apply by hand, and it's removable.
+- **Quirks:**
+  - **ASUS N-KEY keyboard (ITE 8910, USB `0b05:19b6`) after deep sleep.** When the platform reaches s0i3, the keyboard's controller reboots: its backlight flashes white, and its keys stay dead after resume. USB resumes it as if nothing happened, so `hid-asus` never redoes its setup handshake. `usbcore`'s `RESET_RESUME` quirk doesn't help, and it froze X's input on resume. A full re-probe of the USB device does help. An elogind hook in `/usr/libexec/system-sleep/` unbinds and rebinds any `0b05:19b6` device after every resume. It adds about 1–2 s, and does nothing if no such device exists. Seen on the development laptop (ASUS ROG Zephyrus G15 GA503RM, kernel 7.1.13) once the NVIDIA driver let it reach s0i3 (DEC-041); it held across 7 suspends and hibernates in the Phase 11 spike. To be reported to the `hid-asus` maintainers.
+- **History:** 2026-10-05 decided by the maintainer after the Phase 11 spike (SPEC §9).
+
+### DEC-045 X uses libseat's logind backend
+- **Status:** Decided
+- **What:** `tekne-startx.sh` exports `LIBSEAT_BACKEND=logind` before `startx`, so XLibre takes its seat (DRM and input devices, and session switching) from elogind instead of seatd. This applies to every Tekne install, live and installed.
+- **Why:**
+  - XLibre opens devices through libseat. libseat prefers seatd when its daemon runs, and `seatd` is installed because XLibre needs `libseat1`, which depends on `seatd | logind`, and apt picks the first alternative.
+  - The NVIDIA driver registers its GPU as needing a VT switch on every suspend and hibernate (`pm_vt_switch_required` in `nv-pci.c`), so the kernel moves to its suspend console and back, and X's seat is disabled and re-enabled each time.
+  - Under seatd, 2 of 4 hibernates in the Phase 11 spike resumed with X's seat still disabled. The console was back on X's VT, but X logged `Disabling seat` and nothing after, and ignored every keyboard. Only a forced power-off recovered.
+  - With the logind backend, 5 of 5 resumes worked: 3 hibernates and 2 suspends.
+  - Tekne already runs elogind for sessions (DEC-014, SPEC §3.1), so this removes a second seat manager from X's path rather than adding a component.
+- **Scope:** VT switches also happen without NVIDIA, for example `Ctrl+Alt+F2` and back, so this is the default for all installs, not only NVIDIA ones. `seatd` stays installed, though X no longer uses it. elogind also satisfies `libseat1`'s dependency (`logind`), so dropping seatd is possible later. A user's own `~/.xserverrc` or `~/.xinitrc` still wins.
+- **Testing:** `tests/smoke/install.py` checks that X logs "Seat opened with backend 'logind'", and its hibernate/resume checks cover the switch back.
+- **Not fixed by it:** NVIDIA's DDX still can't get modesetting permission rootless (DEC-041).
+- **History:** 2026-10-05 decided by the maintainer after the Phase 11 spike (SPEC §9), where `~/.xserverrc` set the variable for testing.

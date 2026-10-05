@@ -50,7 +50,7 @@ In practice this means:
 | Session/seat | `elogind` + `libpam-elogind`, `polkitd` |
 | Kernel | Devuan/Debian stock `linux-image-amd64`, from `excalibur-backports` (DEC-036) |
 | Package manager | APT, unmodified |
-| Third-party repos | Brave (`brave-origin`, `brave-keyring`) and XLibre for Devuan (`xlibre*`), each pinned to specific packages (DEC-026) |
+| Third-party repos | Brave (`brave-origin`, `brave-keyring`) and XLibre for Devuan (`xlibre*`), each pinned to specific packages (DEC-026). From 0.3, opt-in: NVIDIA's, for the display driver (DEC-041) |
 | Tekne repo | From 0.2: `https://graewolf.github.io/tekne/apt/`, pinned to `tekne-*` packages (DEC-040) |
 
 ### 3.2 Build tooling
@@ -346,7 +346,9 @@ Phase numbers continue from §7.
 
 > **Status:** Agreed by the maintainer on 2026-10-03 (answers in §9.6). The new
 > decisions are DEC-041 (NVIDIA), DEC-042 (autologin) and DEC-043 (the symbols
-> font). DEC-041's design depends on the Phase 11 spike. Nothing is built yet.
+> font). On 2026-10-05, after the Phase 11 spike, the maintainer redesigned DEC-041 and
+> added DEC-044 (hardware quirks) and DEC-045 (X's seat backend); answers in §9.6.
+> Nothing is built yet.
 
 ### 9.1 Theme: the hybrid-graphics laptop as a daily driver
 
@@ -364,16 +366,18 @@ runs it every day, and it still has gaps:
 2. One passphrase from power-on to desktop on encrypted installs.
 3. Fixes for the daily annoyances, in the packages that ship the defaults.
 
-The NVIDIA driver is the hard part and gets the most attention. Its suspend and
-hibernate support ships only as systemd units, and nobody has tested it with
-XLibre (DEC-027). The rest is small configuration work that QEMU can test.
+The NVIDIA driver is the hard part and gets the most attention. The Phase 11 spike
+found that Devuan's driver doesn't build for Tekne's kernel. NVIDIA's own works with
+XLibre (DEC-027), but brought two resume problems with it that Tekne fixes for all
+installs (DEC-044, DEC-045). The rest is small configuration work that QEMU can test.
 
 ### 9.2 Goals
 1. **NVIDIA proprietary driver, opt-in.**
-   - A new `tekne-nvidia` package, published in Tekne's repository, installs Devuan's driver and makes it work without systemd:
-     - suspend and hibernate hooks for elogind
-     - runtime power management, so the discrete GPU sleeps when idle
+   - Two opt-in packages, published in Tekne's repository (DEC-041). `tekne-nvidia-repo` adds NVIDIA's Debian 13 repository under DEC-026's rules. `tekne-nvidia` installs NVIDIA's current driver from it and makes it work without systemd:
+     - suspend and hibernate through the driver's kernel notifiers, with no hook
+     - runtime power management, so the discrete GPU sleeps when idle on battery
      - a PRIME render-offload launcher
+   - Resume works reliably on every install, NVIDIA or not: X takes its seat from elogind (DEC-045), and a device-matched quirk brings back ASUS keyboards that deep sleep resets (DEC-044).
    - The internal display stays on the integrated GPU. If the NVIDIA module fails to build or load, the desktop still works.
    - Removing the package goes back to `nouveau`.
 2. **Autologin after LUKS.**
@@ -394,28 +398,34 @@ XLibre (DEC-027). The rest is small configuration work that QEMU can test.
 - **Real artwork (DEC-034).** This needs an artist, not engineering. DEC-034 already allows same-named files to replace the placeholders, so the art can arrive in any `tekne-branding` update.
 - **A second machine.** There isn't one. `tekne-nvidia` is the first hardware-specific package, and docs/testing.md gets an NVIDIA section, so other hybrid laptops can report results.
 - **Devuan testing (Freia), and newer alacritty, neovim and fastfetch.** 0.3 uses Excalibur's versions. A newer neovim waits for 0.4 (Q6). See §9.5.
-- **The installer offering the NVIDIA driver.** The driver needs DKMS, a compiler and kernel headers, roughly 90 packages. Shipping them would push the ISO past GitHub's 2 GiB asset limit (DEC-020): the last local build is already 1.85 GiB. Fetching them during install would add a network dependency the installer doesn't have. In 0.3 it's one `apt install` after installing, and the installer prints that hint when it sees an NVIDIA GPU.
+- **The installer offering the NVIDIA driver.** The driver needs DKMS, a compiler and kernel headers, roughly 90 packages. Shipping them would push the ISO past GitHub's 2 GiB asset limit (DEC-020): the last local build is already 1.85 GiB. Fetching them during install would add a network dependency the installer doesn't have. In 0.3 it's a few apt commands after installing (DEC-041), and the installer prints that hint when it sees an NVIDIA GPU.
+- **Outputs wired to the NVIDIA GPU (HDMI on the development laptop).** Rootless X can't get modesetting permission from NVIDIA's DDX (DEC-041). Phase 11 runs a root-X test to find the cause, but HDMI doesn't block 0.3 (§9.6, P8).
+- **The GPU powering off on AC.** TLP keeps it powered when plugged in. Documented for 0.3 and revisited later (P7).
 - **DEC-035 (the Devuan console greeting).** The maintainer kept option 1 (Q4), even though autologin edits the same tty1 getty line.
 - **A Bluetooth bar module.** The tray icon is enough (Q5). Blueman's manager window floats and is centred however it's opened.
 
 ### 9.4 Proposed design
 
-**NVIDIA (DEC-041).** Findings so far, from apt on the laptop:
-- **Driver version.** "The most current proprietary driver in the Devuan repo" is 550.163.01. It's the only version anywhere in Devuan: Excalibur has `-2`, `excalibur-backports` has `-4~bpo13+1`, and even Debian forky has 550 (`-5.1`). 550 fully supports the laptop's RTX 3060 (Ampere). Newer branches (570 and later) come only from NVIDIA's own repository. That would be a third-party repository under DEC-026, and this proposal doesn't use it.
-- **No systemd packages.** Simulating `apt install nvidia-driver firmware-nvidia-gsp` pulls in 93 packages, including `dkms` and `gcc-14`, and none of them is a systemd package. `xserver-xorg-video-nvidia` resolves against XLibre's packages.
-- **Suspend and hibernate.** `nvidia-suspend-common` ships `nvidia-sleep.sh` but drives it only from systemd units, so on Tekne nothing would call it.
+**NVIDIA (DEC-041, redesigned 2026-10-05).** The Phase 11 spike (`spike/phase11/README.md`) found:
+- **Devuan's driver doesn't build.** 550.163.01 is Devuan's only driver. The backports build supports kernels up to 6.17, but Tekne runs 7.1 (DEC-036). Debian's 7.0 fixes are only in sid and forky.
+- **NVIDIA's own works.** 615.71.09 from NVIDIA's Debian 13 repository uses open kernel modules (Turing and newer), builds for 7.1, and pulls in no systemd package. Its own modprobe settings make the kernel handle suspend and hibernate (`NVreg_UseKernelSuspendNotifiers=1`).
+- **It runs with XLibre.** XLibre loads NVIDIA's DDX despite the ABI mismatch. Offload rendering works, and the idle GPU powers off on battery.
+
+`tekne-nvidia-repo` (Architecture all) ships NVIDIA's repository `.sources` entry, its checksum-pinned key, and a pin that admits only the driver's six source packages. Everything else from NVIDIA, CUDA included, gets -1. It follows DEC-026, whose rule 2 now allows an opt-in package to carry a repository, so systems without NVIDIA never contact it.
 
 `tekne-nvidia` (Architecture all) would:
-- Depend on `nvidia-driver`, `nvidia-kernel-dkms`, `firmware-nvidia-gsp` and `linux-headers-amd64`. The headers come from backports, through DEC-036's existing pin.
-- Ship an elogind sleep hook, `/usr/lib/elogind/system-sleep/tekne-nvidia`, that calls `nvidia-sleep.sh` around suspend and hibernate. With no NVIDIA module loaded, it does nothing.
-- Ship modprobe options: `NVreg_PreserveVideoMemoryAllocations=1`, a temporary file path on disk, and `NVreg_DynamicPowerManagement=0x02` so the discrete GPU powers off when idle.
-- Ship `tekne-prime-run CMD`, which sets the PRIME offload variables. X stays on `amdgpu`, and NVIDIA is an offload GPU only, so a missing or broken module costs offload, not the desktop.
-- Not be in the ISO and not be installed by default. Users install it with `sudo apt install tekne-nvidia`.
+- Depend on `nvidia-driver` and `nvidia-kernel-open-dkms` from that repository, and on `linux-headers-amd64` from backports through DEC-036's existing kernel pin. It doesn't pull in `nvidia-persistenced` (which keeps the GPU initialised) or `nvidia-settings`.
+- Ship modprobe options (`NVreg_DynamicPowerManagement=0x02`, `nvidia-drm` `modeset=1`) and a udev rule enabling runtime power management for the GPU's HDMI audio function, which NVIDIA's rules leave out.
+- Ship `tekne-prime-run CMD`, which sets the PRIME offload variables. X stays on `amdgpu`, so a missing or broken module costs offload, not the desktop.
+- Have no sleep hook.
+- Not be in the ISO and not be installed by default.
 
-Things that need decisions or a spike:
-- **Which suite.** Backports (Q1). The stable `-2` package may not build against the backports 7.1 kernel (DEC-036), and the `-4~bpo13+1` package probably exists for exactly that. DEC-036's backports pin grows to cover the NVIDIA driver's source packages (`nvidia-graphics-drivers` and the firmware they need). The spike lists the exact binary package names.
-- **XLibre.** NVIDIA support on XLibre is undocumented (DEC-027). If offload or the driver fails on XLibre, the fallback is Devuan's `xserver-xorg`, which also changes a Decided entry. The spike decides before anything is built.
-- **New kernels.** Every backports kernel bump can break the DKMS build. A build-time check compiles the module against the kernel the image ships, so a breaking kernel can't reach a release unnoticed.
+Every build compiles NVIDIA's open module against the kernel the ISO ships, so a backports kernel that breaks the driver can't reach a release unnoticed. The 7.1.13 → 7.2.6 backports move, under way on 2026-10-05, is the first real case.
+
+**Resume fixes from the spike (all installs).**
+- **X's seat backend (DEC-045).** NVIDIA forces a VT switch on every suspend. Under seatd, X sometimes never got its seat back (2 of 4 hibernates froze its input), while with libseat's logind backend 5 of 5 resumes worked. `tekne-startx.sh` exports `LIBSEAT_BACKEND=logind`.
+- **ASUS keyboard after deep sleep (DEC-044).** s0i3 reboots the ITE 8910 keyboard's controller (`0b05:19b6`). An elogind hook in `/usr/libexec/system-sleep/` re-probes that device after resume, and does nothing on other machines.
+- **TLP's sleep hook (DEC-025).** `tlp` puts it in `/usr/lib/elogind/system-sleep/`, which Devuan's elogind never reads. `tekne-config` links it into `/usr/libexec/system-sleep/`.
 
 **Autologin (DEC-042).**
 - **Where it's set.** `/etc/inittab` isn't a conffile. `sysvinit-core`'s postinst generates it, and the installer already rewrites it (`tekne-install`). For new installs, the installer asks "Log in automatically after unlocking?" when LUKS is chosen and adds `--autologin USER` to tty1's getty line. Existing installs use `tekne-autologin on|off` from `tekne-config`. It refuses unless `/` is on dm-crypt. Package scripts never edit inittab.
@@ -491,19 +501,29 @@ so it most likely waits for Freia to become stable. The options:
 - **Q6, testing:** the packages that feel too old are alacritty, neovim and fastfetch. None of them is in backports. 0.3 keeps Excalibur's versions, and neovim waits for 0.4 (§9.5).
 - **Q7, fastfetch and `cat`:** as proposed. fastfetch runs in every new terminal, and `cat` is aliased to `batcat --paging=never`.
 
+**After the Phase 11 spike (2026-10-05):**
+- **P1, driver source:** NVIDIA's Debian 13 repository, under DEC-026 (DEC-041). This replaces Q1's backports, whose 550 driver doesn't build on 7.1.
+- **P2, enabling it:** an opt-in `tekne-nvidia-repo` package, not `tekne-apt-sources`, so systems without NVIDIA never contact NVIDIA's server. Shipping it enabled everywhere, or disabled with a helper, were the alternatives.
+- **P3, sleep hook:** none. 615's kernel notifiers handle suspend and hibernate.
+- **P4, ASUS keyboard:** a device-matched hook in `tekne-config`, recorded as DEC-044 "Hardware quirks", and reported upstream to `hid-asus`.
+- **P5, X's seat backend:** `LIBSEAT_BACKEND=logind` is the default for all installs (DEC-045).
+- **P6, TLP's sleep hook:** `tekne-config` links it into `/usr/libexec/system-sleep/`.
+- **P7, GPU power on AC:** accepted and documented for 0.3; revisit later.
+- **P8, HDMI:** run the root-X test to find the cause, but HDMI doesn't block 0.3.
+
 ### 9.7 Phases and acceptance criteria
 Phase numbers continue from §8.
 
-**Phase 11: Decisions and the NVIDIA spike**
-- DEC-041, DEC-042 and DEC-043, with History lines on the Decided entries they amend (DEC-016, DEC-027, DEC-030, DEC-036, DEC-040). Done 2026-10-03.
-- (maintainer) On the laptop, after a backup, install the NVIDIA driver by hand from `excalibur-backports`. The driver is removable with `apt purge`, and tty2 stays available for recovery.
-- ✅ The DKMS module builds against Tekne's current backports kernel, and `nvidia-smi` sees the GPU.
-- ✅ With XLibre, the desktop stays on the AMD GPU. An offloaded program runs on the NVIDIA GPU: `glxinfo` with the offload variables reports NVIDIA.
-- ✅ Suspend/resume and hibernate/resume work with the module loaded, with the sleep hook driven by elogind. The GPU's runtime status is `suspended` when idle.
-- ✅ External monitors work on every port, including any wired to the NVIDIA GPU.
+**Phase 11: Decisions and the NVIDIA spike**. In progress. The spike's kit, results and findings are in `spike/phase11/` (`1bf9e27`). DEC-041 was redesigned and DEC-044 and DEC-045 added on 2026-10-05.
+- DEC-041, DEC-042 and DEC-043, with History lines on the Decided entries they amend (DEC-016, DEC-027, DEC-030, DEC-036, DEC-040). Done 2026-10-03. After the spike: DEC-041 redesigned, DEC-044 and DEC-045 added, and History lines on DEC-025, DEC-026, DEC-027, DEC-036 and DEC-040. Done 2026-10-05.
+- (maintainer) On the laptop, after a backup, install the NVIDIA driver by hand. Attempt 1 used `excalibur-backports`, whose module didn't build. Attempt 2 used NVIDIA's repository (`spike/phase11/install-nvidia-repo.sh`). The driver is removable with `spike/phase11/rollback.sh`, and tty2 stays available for recovery.
+- ✅ The DKMS module builds against Tekne's current backports kernel. Passed 2026-10-03 on 7.1.13 with NVIDIA 615. Recheck on 7.2.6 once backports finishes moving.
+- ✅ With XLibre, the desktop stays on the AMD GPU. An offloaded program runs on the NVIDIA GPU: `glxinfo` with the offload variables reports NVIDIA. Passed 2026-10-03, Vulkan too.
+- ✅ Suspend/resume and hibernate/resume work with the module loaded. On battery, the GPU's runtime status is `suspended` when idle. Passed 2026-10-03 with the spike's equivalents of DEC-044 and DEC-045 (5 of 5 resumes). On AC the GPU stays on (P7). Without DEC-045, 2 of 4 hibernates froze X's input.
+- ✅ External monitors work on the ports wired to the AMD GPU. For ports wired to the NVIDIA GPU (HDMI), a test with X running as root shows whether "Failed to acquire modesetting permission" is a permissions problem, and the result is recorded in DEC-041. HDMI doesn't block 0.3 (P8). Not done yet: it needs an external monitor.
 
 **Phase 12: Desktop polish**
-- `tekne-config` and `tekne-desktop` changes from §9.2 Goal 3.
+- `tekne-config` and `tekne-desktop` changes from §9.2 Goal 3, and the resume fixes from §9.4: DEC-045's `LIBSEAT_BACKEND=logind`, DEC-044's keyboard hook, and the TLP hook link. docs/desktop-stack.md §2 is updated for the seat backend.
 - ✅ Every added package exists in Excalibur and passes the no-systemd check, the vendored font is checksum-pinned (DEC-043), and the ISO stays under 2 GiB.
 - ✅ In the live session, `live-boot.py` checks that:
   - polybar runs with Tekne's config
@@ -514,13 +534,17 @@ Phase numbers continue from §8.
   - the user's XDG directories exist after the first login
   - an interactive `tekne-terminal` shell has the `cat` alias
   - fastfetch shows the Tekne logo, not Devuan's
+  - X logs "Seat opened with backend 'logind'" (DEC-045), and the existing hibernate/resume checks still pass
+  - `/usr/libexec/system-sleep/` has TLP's hook link and the ASUS keyboard hook, which does nothing in QEMU (no such device)
 - ✅ (maintainer) In QEMU and on the laptop: the bar shows the icons, the centred clock and all nine tags in three states. `nmtui` and Blueman open floating and centred from the bar, and an SSH key's passphrase is asked once per session.
+- ✅ (maintainer) On the laptop, with the spike's `~/.xserverrc` and hooks removed and the packaged ones installed, suspend and hibernate resume with a working internal keyboard. The `hid-asus` report has been filed.
 
 **Phase 13: `tekne-nvidia`**
-- The package from §9.4 (DEC-041), published in Tekne's repository with the other four, and documented in `docs/customizing.md` and docs/testing.md. DEC-036's pin gains the driver packages.
-- ✅ Every build compiles the NVIDIA DKMS module against the kernel the ISO ships, and fails if it doesn't build.
-- ✅ In QEMU (no NVIDIA GPU), installing `tekne-nvidia` on an installed UEFI+LUKS system leaves it booting to the desktop and passing `installed-checks.sh`, hibernate/resume included. Purging it passes the same checks.
-- ✅ (maintainer) On the laptop, `sudo apt install tekne-nvidia` from the repository gives Phase 11's results without any manual step. Purging it brings back `nouveau`.
+- `tekne-nvidia-repo` and `tekne-nvidia` from §9.4 (DEC-041), published in Tekne's repository with the other four, and documented in `docs/customizing.md` and docs/testing.md. The spike's files are replaced by the packages, and `spike/phase11/` is removed, kept in git history like Phase 0's.
+- ✅ `tekne-nvidia-repo`'s key matches its recorded checksum, and the build's global-key check still passes. On an installed system, `apt-cache policy` shows NVIDIA's repository offering only the driver's six source packages; everything else from it, `cuda-*` and `nvidia-driver-pinning-*` included, is at -1.
+- ✅ Every build compiles NVIDIA's open DKMS module against the kernel the ISO ships, from a source verified by the repository's signature, and fails if it doesn't build.
+- ✅ In QEMU (no NVIDIA GPU), installing both packages on an installed UEFI+LUKS system leaves it booting to the desktop and passing `installed-checks.sh`, hibernate/resume included. Purging them passes the same checks. Installing pulls in no systemd package.
+- ✅ (maintainer) On the laptop, with the spike rolled back, the documented install steps give Phase 11's results without any manual step. Purging brings back `nouveau`.
 
 **Phase 14: Autologin after LUKS**
 - The installer question, `tekne-autologin` and the change to `tekne-startx.sh` (DEC-042). docs/installer.md and docs/desktop-stack.md §2 are updated.
