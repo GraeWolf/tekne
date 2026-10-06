@@ -562,7 +562,7 @@ Phase numbers continue from §8.
 - ✅ With a deliberately broken X configuration, tty1 starts X at most twice and then stays on a console shell. tty2 still offers a normal login.
 - ✅ (maintainer) On the laptop (0.2, upgraded through apt), `tekne-autologin on` gives one passphrase from power-on to desktop. Passed 2026-10-06.
 
-**Phase 15: Docs and the 0.3 release**. In progress (answers R1–R3 in §9.6).
+**Phase 15: Docs and the 0.3 release**. In progress (answers R1–R3 in §9.6). `v0.3-rc1` was released on 2026-10-06 from `1017870`: CI run 37529245021 passed every test on the tag and made the draft, and the maintainer published it and approved the repository publish (run 37536020498). `excalibur-rc` serves all six packages at `0.3~rc1`, signed by subkey `82C3…`, and `excalibur` still serves 0.2. `tests/smoke/release.py v0.3-rc1` passed: a fresh install from the published ISO has no `tekne-*` updates waiting, and the repository offers all six `.deb`s at `0.3~rc1`. The release notes' one relative link was replaced by a full URL in the draft before publishing, and in the CHANGELOG. `VERSION` is now `0.3-rc2`.
 - README, `docs/customizing.md` (the shell snippet line for existing users, NVIDIA and autologin), docs/testing.md, and the CHANGELOG.
 - ✅ `v0.3-rc1` is released through CI (DEC-039) and published to `excalibur-rc`. The laptop upgrades to it with `apt upgrade` and is dogfooded.
 - ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.

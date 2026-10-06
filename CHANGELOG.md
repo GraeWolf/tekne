@@ -26,7 +26,7 @@ which `apt-get upgrade` would hold it back for. Then, optionally:
   `[ -r /usr/share/tekne/bash/tekne.bashrc ] && . /usr/share/tekne/bash/tekne.bashrc`
 - **Autologin** on an encrypted install: `sudo tekne-autologin on`, then reboot.
 - **NVIDIA's driver:** the three commands in
-  [docs/customizing.md](docs/customizing.md), "NVIDIA graphics".
+  [docs/customizing.md](https://github.com/GraeWolf/tekne/blob/v0.3-rc1/docs/customizing.md#nvidia-graphics), "NVIDIA graphics".
 
 **Testing a release candidate** on 0.2: in
 `/etc/apt/sources.list.d/tekne.sources`, change `Suites: excalibur` to

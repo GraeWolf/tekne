@@ -12,8 +12,9 @@ installs with `sudo tekne-install` (optionally with LUKS, with hibernation),
 and an installed Tekne updates with `apt`, its own packages included. CI builds
 and tests every change.
 
-Tekne 0.3 (SPEC §9), coming next, makes a hybrid-graphics laptop
-a daily driver:
+Tekne 0.3 (SPEC §9) makes a hybrid-graphics laptop a daily driver. Its first
+release candidate, [0.3-rc1](https://github.com/GraeWolf/tekne/releases/tag/v0.3-rc1),
+is out for testing (see "Release candidates" below). It brings:
 - NVIDIA's proprietary driver, opt-in, with PRIME offload
 - one passphrase from power-on to the desktop on encrypted installs
 - an icon bar and floating pop-ups
