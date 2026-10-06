@@ -514,6 +514,11 @@ so it most likely waits for Freia to become stable. The options:
 - **P7, GPU power on AC:** accepted and documented for 0.3; revisit later.
 - **P8, HDMI:** run the root-X test to find the cause, but HDMI doesn't block 0.3.
 
+**Phase 15 (2026-10-06):**
+- **R1, external monitors:** the check on the AMD GPU's ports (USB-C) doesn't block 0.3-rc1. If no monitor has been available by the final release, 0.3 lists external monitors as untested under its known limitations, and Phase 11 stays open into 0.4.
+- **R2, checking a published release:** a permanent `tests/smoke/release.py`, run by hand after each publish (docs/building.md, "Release").
+- **R3, dogfooding:** at least two days of daily use of 0.3-rc1 on the laptop before 0.3, including suspend and hibernate cycles with NVIDIA's driver and autologin.
+
 ### 9.7 Phases and acceptance criteria
 Phase numbers continue from §8.
 
@@ -557,7 +562,7 @@ Phase numbers continue from §8.
 - ✅ With a deliberately broken X configuration, tty1 starts X at most twice and then stays on a console shell. tty2 still offers a normal login.
 - ✅ (maintainer) On the laptop (0.2, upgraded through apt), `tekne-autologin on` gives one passphrase from power-on to desktop. Passed 2026-10-06.
 
-**Phase 15: Docs and the 0.3 release**
+**Phase 15: Docs and the 0.3 release**. In progress (answers R1–R3 in §9.6).
 - README, `docs/customizing.md` (the shell snippet line for existing users, NVIDIA and autologin), docs/testing.md, and the CHANGELOG.
 - ✅ `v0.3-rc1` is released through CI (DEC-039) and published to `excalibur-rc`. The laptop upgrades to it with `apt upgrade` and is dogfooded.
 - ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.

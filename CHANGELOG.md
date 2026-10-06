@@ -2,26 +2,38 @@
 
 ## Unreleased
 
-Work towards Tekne 0.3, "the hybrid-graphics laptop as a daily driver" (SPEC §9).
+Tekne 0.3 makes a hybrid-graphics laptop a daily driver (SPEC §9).
+- NVIDIA's own driver is an opt-in install, with PRIME offload and the idle
+  GPU powered off.
+- Encrypted installs can go from the LUKS passphrase straight to the desktop.
+- Resume is more reliable on every machine.
+- The bar, the shell and a few pop-ups are less rough.
+
+Tested in CI on every build (BIOS and UEFI, plain and LUKS, hibernation
+included), and on the development laptop, an ASUS ROG Zephyrus G15 (AMD and
+NVIDIA RTX 3060), with kernel 7.2.6.
+
+**Upgrading from 0.2:**
+
+```sh
+sudo apt update && sudo apt upgrade
+```
+
+Use `apt`, not `apt-get upgrade`: `tekne-desktop` gains new dependencies,
+which `apt-get upgrade` would hold it back for. Then, optionally:
+- **Shell defaults** for users created before 0.3: add this line to
+  `~/.bash_aliases`:
+  `[ -r /usr/share/tekne/bash/tekne.bashrc ] && . /usr/share/tekne/bash/tekne.bashrc`
+- **Autologin** on an encrypted install: `sudo tekne-autologin on`, then reboot.
+- **NVIDIA's driver:** the three commands in
+  [docs/customizing.md](docs/customizing.md), "NVIDIA graphics".
+
+**Testing a release candidate** on 0.2: in
+`/etc/apt/sources.list.d/tekne.sources`, change `Suites: excalibur` to
+`Suites: excalibur-rc`, then upgrade as above. A system installed from a
+candidate's ISO follows `excalibur` and gets 0.3 when it's released.
 
 ### Added
-- **Bar:** all nine tags (active, occupied or empty), the clock in the centre,
-  and icons instead of text for volume, Wi-Fi, Ethernet, battery and the clock,
-  from Nerd Fonts' "Symbols Only" fonts (v3.5.1, pinned by checksum, DEC-043).
-  The same fonts are fontconfig's fallback after JetBrains Mono, so icons also
-  render in the terminal.
-- **Floating windows:** `nmtui` (from the bar's network modules, through the new
-  `tekne-nmtui`), Blueman's manager and Pavucontrol open floating and centred.
-- **Shell defaults** for new users, through `~/.bash_aliases` from `/etc/skel`:
-  `cat` runs `batcat --paging=never`, and fastfetch, with Tekne's logo, runs
-  when `tekne-terminal` opens a terminal. Users created before 0.3 can opt in
-  with one line (docs/customizing.md).
-- **SSH keys:** `AddKeysToAgent yes`, so the session's `ssh-agent` asks for a
-  key's passphrase once per session. `openssh-client` is now installed (the
-  client only; there's still no SSH server).
-- **XDG user directories** (Documents, Downloads, ...): created by the
-  installer, and by `tekne-session` at each login if they're missing.
-- **Packages:** `bat`, `fastfetch`, `ffmpeg`, `imagemagick`, `openssh-client`.
 - **NVIDIA's driver, opt-in** (DEC-041): `tekne-nvidia-repo` adds NVIDIA's
   repository, pinned to the display driver, and `tekne-nvidia` installs the driver
   (615, open kernel modules, Turing and newer) with PRIME offload
@@ -35,6 +47,23 @@ Work towards Tekne 0.3, "the hybrid-graphics laptop as a daily driver" (SPEC §9
   tty2–6 still ask for the password, and the keyring asks for it once per
   session. If X fails within 15 seconds, tty1 stays on a console shell for the
   rest of the boot instead of looping.
+- **Bar:** all nine tags (active, occupied or empty), the clock in the centre,
+  and icons instead of text for volume, Wi-Fi, Ethernet, battery and the clock,
+  from Nerd Fonts' "Symbols Only" fonts (v3.5.1, pinned by checksum, DEC-043).
+  The same fonts are fontconfig's fallback after JetBrains Mono, so icons also
+  render in the terminal.
+- **Floating windows:** `nmtui` (from the bar's network modules, through the new
+  `tekne-nmtui`), Blueman's manager and Pavucontrol open floating and centred.
+- **Shell defaults** for new users, through `~/.bash_aliases` from `/etc/skel`:
+  `cat` runs `batcat --paging=never`, and fastfetch, with Tekne's logo, runs
+  when `tekne-terminal` opens a terminal. Users created before 0.3 can opt in
+  with one line (above, and in docs/customizing.md).
+- **SSH keys:** `AddKeysToAgent yes`, so the session's `ssh-agent` asks for a
+  key's passphrase once per session. `openssh-client` is now installed (the
+  client only; there's still no SSH server).
+- **XDG user directories** (Documents, Downloads, ...): created by the
+  installer, and by `tekne-session` at each login if they're missing.
+- **Packages:** `bat`, `fastfetch`, `ffmpeg`, `imagemagick`, `openssh-client`.
 
 ### Fixed
 - **Resume:** X now takes its seat from elogind rather than seatd
@@ -47,6 +76,34 @@ Work towards Tekne 0.3, "the hybrid-graphics laptop as a daily driver" (SPEC §9
 - **Kernel 7.2:** `linux-base` comes from backports too, which kernel 7.2.6
   needs. Without it, builds failed and installed systems stayed on 7.1
   (DEC-036).
+- **Installing with kernel 7.2:** its packages hard-link the kernel in
+  `/usr/lib/modules` to the copy in `/boot`, a separate partition, so every
+  install failed with "Invalid cross-device link". The installer now copies
+  `/boot` in a second pass.
+
+### Build and tests
+- When a Devuan mirror hasn't synced the backports kernel yet, the build
+  fetches it from `pkgmaster.devuan.org`, the archive the mirrors sync from.
+  Each file must match the SHA-256 in the signed index (DEC-036).
+- New QEMU tests:
+  - `tests/smoke/nvidia.py` installs, checks and purges the NVIDIA packages.
+  - `install.py`'s LUKS cases check autologin, the lock screen and the
+    keyring, and break X on purpose to check tty1 doesn't loop.
+  - `upgrade.py` turns autologin on after upgrading, like an existing install.
+- `tests/smoke/release.py`, run after publishing a release, checks that a fresh
+  install from the released ISO has no `tekne-*` updates waiting.
+
+**Known limitations:**
+- Outputs wired to the NVIDIA GPU (HDMI on the development laptop) don't work
+  with NVIDIA's driver yet (DEC-041). External monitors on the AMD GPU's ports
+  haven't been tested on hardware yet.
+- With NVIDIA's driver, the GPU stays powered on AC: TLP keeps it on when
+  plugged in.
+- Secure Boot must be off (DEC-016), and NVIDIA's DKMS module is unsigned.
+- The installer takes a whole disk: no dual-boot or manual partitioning (DEC-005).
+- The artwork is a placeholder, and the console login greeting still names
+  Devuan (DEC-035).
+- Real-hardware testing so far is one laptop.
 
 ## 0.2 (2026-10-03)
 

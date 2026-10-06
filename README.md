@@ -10,11 +10,18 @@ is released: download the ISO, its checksum and build-info from the release
 page. The live ISO boots to the herbstluftwm desktop on BIOS and UEFI,
 installs with `sudo tekne-install` (optionally with LUKS, with hibernation),
 and an installed Tekne updates with `apt`, its own packages included. CI builds
-and tests every change. Every phase in SPEC.md (0.1's and 0.2's) is complete.
+and tests every change.
+
+Tekne 0.3 (SPEC §9), coming next, makes a hybrid-graphics laptop
+a daily driver:
+- NVIDIA's proprietary driver, opt-in, with PRIME offload
+- one passphrase from power-on to the desktop on encrypted installs
+- an icon bar and floating pop-ups
+- shell defaults
 
 | Guide | For |
 |---|---|
-| [docs/customizing.md](docs/customizing.md) | Changing an installed Tekne: desktop, keybindings, theme, firewall, kernel |
+| [docs/customizing.md](docs/customizing.md) | Changing an installed Tekne: desktop, keybindings, theme, firewall, kernel, NVIDIA's driver, autologin |
 | [docs/building.md](docs/building.md) | Building, testing and releasing the ISO, and where to change things |
 | [docs/testing.md](docs/testing.md) | The manual checklist for real hardware |
 | [docs/desktop-stack.md](docs/desktop-stack.md), [docs/installer.md](docs/installer.md) | How the desktop and the installer are designed |
@@ -59,15 +66,20 @@ The build fails if the package manifest breaks the no-systemd rule
 ## Test
 
 Needs `qemu-system-x86` and `ovmf` on the host. CI (GitHub Actions,
-`.github/workflows/build.yml`) builds the ISO and runs `live-boot.py`,
-`repo.py` and `install.py` on every push to `master` and every pull request;
-each green run keeps the ISO as a downloadable artifact for 30 days (DEC-038).
+`.github/workflows/build.yml`) builds the ISO and runs every test below except
+`release.py` on every push to `master` and every pull request. Each green run
+keeps the ISO as a downloadable artifact for 30 days (DEC-038).
 
 ```sh
 tests/smoke/live-boot.py                  # live ISO on SeaBIOS and OVMF: sysvinit, desktop, firewall
 tests/smoke/repo.py                       # Tekne's APT repository: key, pin, tampered .deb
 tests/smoke/install.py                    # unattended installs {BIOS,UEFI} x {plain,LUKS}, each
-                                          # booted, checked, hibernated and resumed (~15 min)
+                                          # booted, checked, hibernated and resumed; LUKS cases
+                                          # with autologin and the lock screen (~15 min)
+tests/smoke/upgrade.py                    # the last release, upgraded to this build through apt
+tests/smoke/nvidia.py                     # tekne-nvidia-repo and tekne-nvidia: install, check, purge
+tests/smoke/release.py                    # after publishing: a fresh install from the released ISO
+                                          # has no tekne-* updates waiting in the live repository
 scripts/test-in-qemu.sh uefi              # the newest ISO in a QEMU window
 scripts/test-in-qemu.sh uefi --disk       # ...with a blank 32 GiB virtual disk: sudo tekne-install
 scripts/test-in-qemu.sh uefi --installed  # boot that virtual disk after installing
