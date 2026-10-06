@@ -29,6 +29,12 @@ Work towards Tekne 0.3, "the hybrid-graphics laptop as a daily driver" (SPEC §9
   without systemd. Neither is in the ISO; docs/customizing.md has the three
   commands, and `sudo tekne-nvidia-remove` goes back to `nouveau`. Every build
   checks that NVIDIA's module builds for its kernel.
+- **Autologin after the LUKS passphrase** (DEC-042): on encrypted installs, one
+  passphrase from power-on to the desktop. The installer asks (default yes), and
+  existing installs run `sudo tekne-autologin on`. The lock screen, `sudo` and
+  tty2–6 still ask for the password, and the keyring asks for it once per
+  session. If X fails within 15 seconds, tty1 stays on a console shell for the
+  rest of the boot instead of looping.
 
 ### Fixed
 - **Resume:** X now takes its seat from elogind rather than seatd

@@ -47,6 +47,17 @@ lock screen and the wallpaper. Details: [desktop-stack.md](desktop-stack.md).
   tty1 then gives a shell; run `startx` yourself when you want the desktop.
 - **Your own X session:** a `~/.xsession` or `~/.xinitrc` replaces
   `tekne-session` entirely.
+- **Autologin after the LUKS passphrase** (DEC-042, encrypted installs only): new
+  installs choose it in the installer. On an existing install, run
+  `sudo tekne-autologin on` (or `on USER`), and `sudo tekne-autologin off` to go back.
+  `tekne-autologin status` shows the setting. It takes effect at the next boot.
+  The lock screen, `sudo` and tty2–6 still ask for your password, and so does
+  your keyring, once per session, the first time an app needs a secret. Logging
+  out of the desktop logs tty1 straight back in; use tty2 for a console login.
+- **If X fails to start,** tty1 stays on a console shell for the rest of the boot
+  instead of retrying, so a broken setup can't loop through autologin. Fix the
+  problem (X's log is `~/.local/state/xorg/Xorg.0.log`), then
+  `rm ~/.cache/tekne/startx-failed && startx`.
 
 ## Default applications
 

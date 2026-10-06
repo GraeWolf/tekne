@@ -2,8 +2,8 @@
 
 Automated tests run in QEMU and never touch the host's disks (see README):
 `tests/smoke/live-boot.py`, `tests/smoke/repo.py`, `tests/smoke/install.py`,
-`tests/smoke/upgrade.py`. CI (`.github/workflows/build.yml`, DEC-038) runs all
-four on every push and pull request. This file is the manual checklist for what they can't cover:
+`tests/smoke/upgrade.py`, `tests/smoke/nvidia.py`. CI (`.github/workflows/build.yml`,
+DEC-038) runs all five on every push and pull request. This file is the manual checklist for what they can't cover:
 real hardware (SPEC §5.2).
 
 ## Live-USB hardware check
@@ -93,6 +93,22 @@ in QEMU (`tests/smoke/nvidia.py`), but only real hardware can check the driver:
    the NVIDIA GPU (often HDMI) don't yet (DEC-041); note which ones.
 7. **Back to nouveau:** `sudo tekne-nvidia-remove`, then reboot. `nouveau` is
    loaded again, and `dpkg -l '*nvidia*'` lists only `firmware-nvidia-graphics`.
+
+### Autologin after the LUKS passphrase
+
+On an encrypted install with autologin (DEC-042), whether it was chosen in the
+installer or turned on with `sudo tekne-autologin on`. `install.py` checks the
+same things in QEMU. On hardware they confirm the real keyboard, display and
+suspend:
+
+1. **One passphrase:** from power-on, the LUKS passphrase is the only thing you
+   type before the desktop appears.
+2. **Still locked where it should be:** `Mod+Escape` and suspend lock the screen,
+   and only your password unlocks it. `sudo` asks for it. `Ctrl+Alt+F2` shows a
+   login prompt.
+3. **Keyring:** the first app that needs a secret (Brave, for example) asks for
+   your password once. After that, nothing asks again until the next boot.
+4. **Logout:** the power menu's logout brings the desktop straight back.
 
 ## Before installing on a machine you depend on
 

@@ -107,7 +107,7 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **Why:** It's the simplest setup and has the fewest moving parts. elogind still registers the session through PAM. The live session autologins on tty1.
 - **Alternative:** LightDM, if a graphical greeter is wanted later.
 - **Live session:** autologin on tty1–6 comes from Tekne's own live-config component (`live-build/config/includes.chroot/usr/lib/live/config/0161-tekne-autologin`), using agetty's `--autologin`. live-config's `0160-sysvinit` is broken on Excalibur (see docs/desktop-stack.md §2).
-- **History:** 2026-09-28 proposed and confirmed. Same day (Phase 2), added the live-session autologin component.
+- **History:** 2026-09-28 proposed and confirmed. Same day (Phase 2), added the live-session autologin component. 2026-10-06 (Phase 14): encrypted installs can log in on tty1 automatically after the LUKS passphrase (DEC-042); the login model is otherwise unchanged.
 
 ### DEC-015 No Plymouth in v1
 - **Status:** Decided
@@ -458,6 +458,6 @@ When a decision changes, edit the entry in place and add a dated line to its
   - With the logind backend, 5 of 5 resumes worked: 3 hibernates and 2 suspends.
   - Tekne already runs elogind for sessions (DEC-014, SPEC §3.1), so this removes a second seat manager from X's path rather than adding a component.
 - **Scope:** VT switches also happen without NVIDIA, for example `Ctrl+Alt+F2` and back, so this is the default for all installs, not only NVIDIA ones. `seatd` stays installed, though X no longer uses it. elogind also satisfies `libseat1`'s dependency (`logind`), so dropping seatd is possible later. A user's own `~/.xserverrc` or `~/.xinitrc` still wins.
-- **Testing:** `tests/smoke/install.py` checks that X logs "Seat opened with backend 'logind'", and its hibernate/resume checks cover the switch back.
+- **Testing:** `tests/smoke/live-boot.py` checks that X logs "Seat opened with backend 'logind'", and so does `tests/smoke/install.py` in its LUKS cases, where autologin starts X on tty1 (DEC-042). Their hibernate/resume checks cover the switch back, with X running in those cases.
 - **Not fixed by it:** NVIDIA's DDX still can't get modesetting permission rootless (DEC-041).
-- **History:** 2026-10-05 decided by the maintainer after the Phase 11 spike (SPEC §9), where `~/.xserverrc` set the variable for testing.
+- **History:** 2026-10-05 decided by the maintainer after the Phase 11 spike (SPEC §9), where `~/.xserverrc` set the variable for testing. 2026-10-06 (Phase 14): Testing corrected. Installed systems ran no X during the tests until autologin, so the log check was only in the live session.

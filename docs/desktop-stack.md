@@ -14,7 +14,7 @@ and configured by `tekne-config`.
 | Role | Choice | Notes |
 |---|---|---|
 | Display server | `xlibre` (metapackage), `xinit` | X11 only (DEC-004). XLibre from its third-party repo (DEC-027); Excalibur backports aren't needed. Runs NVIDIA's 615 driver for PRIME offload; outputs wired to the NVIDIA GPU don't work yet (DEC-041) |
-| Login | tty1 login → `startx` (DEC-014) | Live session: autologin on tty1 |
+| Login | tty1 login → `startx` (DEC-014) | Encrypted installs: optional autologin on tty1 after the LUKS passphrase (DEC-042, `tekne-autologin`). Live session: autologin on tty1–6 |
 | Seat/session | `elogind`, `libpam-elogind`, `polkitd` | Rootless X, device access, lid/power keys. Devuan's `libelogind-compat` replaces `libsystemd0` in the desktop image, and `udev` is Devuan's transitional package for `eudev` |
 | Window manager | `herbstluftwm` | |
 | Bar | `polybar` | All nine tags (active, occupied, empty), window title, the clock in the centre, then volume, network, battery and the tray, with Nerd Font icons (DEC-043) |
@@ -31,7 +31,7 @@ and configured by `tekne-config`.
 | File manager | `thunar` + `gvfs`, `tumbler` | Removable media and trash. `tumbler` provides Thunar's thumbnails |
 | Editor | `neovim` (CLI) + `mousepad` (GUI) | |
 | Browser | `brave-origin` (default), `firefox-esr` (fallback) | DEC-028. Brave Origin from Brave's APT repo (DEC-026). Default set by `/etc/xdg/mimeapps.list` (tekne-config) and by pointing the `x-www-browser` alternative at `brave-origin-stable` on first install (tekne-desktop postinst). Firefox policies in tekne-config |
-| Keyring | `gnome-keyring`, `libpam-gnome-keyring` | DEC-030. Secret Service for Brave, Melia, Firefox and NetworkManager. Unlocked by PAM at tty1 login, through tekne-config's `tekne-gnome-keyring` PAM profile (Excalibur's own profile covers password changes only) |
+| Keyring | `gnome-keyring`, `libpam-gnome-keyring` | DEC-030. Secret Service for Brave, Melia, Firefox and NetworkManager. Unlocked by PAM at tty1 login, through tekne-config's `tekne-gnome-keyring` PAM profile (Excalibur's own profile covers password changes only). With autologin it starts locked, and the first app that needs a secret asks for the password once per session |
 | Email | Melia, not preinstalled | DEC-029. `tekne-get-melia` downloads and verifies the signed `.deb` on demand |
 | Screenshots | `maim` + `xclip` | `tekne-screenshot`, bound to `Mod+p` / `Mod+Shift+p` |
 | Clipboard | `xclip`, `copyq` | `clipmenu` isn't packaged in Excalibur; CopyQ replaces it (`Mod+v`). `cliphist` and `clipman` are Wayland-only |
@@ -50,10 +50,22 @@ With no systemd user services, the X session itself starts everything. It uses
 Debian's standard `startx` → `Xsession` path, so a user's own `~/.xinitrc` or
 `~/.xsession` still takes precedence. Order matters:
 
-1. **tty1 login.** `/etc/profile.d/tekne-startx.sh` exports `LIBSEAT_BACKEND=logind`
-   (unless already set) and runs `exec startx` on tty1 if
-   `$DISPLAY` is unset. To opt out, a user creates `~/.config/tekne/no-startx`. In the
-   live session, Tekne's live-config component `0161-tekne-autologin` adds agetty's
+1. **tty1 login.** On encrypted installs with autologin (DEC-042), tty1's getty runs
+   `--autologin USER`, set by the installer or `tekne-autologin on`, so the LUKS
+   passphrase is the only one before the desktop. tty2–6 and the serial getty never log in
+   automatically. `/etc/profile.d/tekne-startx.sh` exports `LIBSEAT_BACKEND=logind`
+   (unless already set) and runs `startx` on tty1 if `$DISPLAY` is unset. To opt out, a
+   user creates `~/.config/tekne/no-startx`.
+   - **No restart loop.** `startx` isn't `exec`ed. When it returns after 15 seconds or more
+     (a normal logout or a later crash), the shell logs out, so with autologin tty1 logs
+     straight back in. When it returns sooner, whatever its status (`xinit` reports success
+     when the session client fails), the shell writes the boot ID to
+     `~/.cache/tekne/startx-failed` and stays on the console, and tty1 doesn't start X
+     again in that boot. The message names X's log, `~/.local/state/xorg/Xorg.0.log`. The
+     marker isn't in `/run/user/UID`, which elogind removes at logout, exactly when the
+     respawned autologin needs it.
+
+   In the live session, Tekne's live-config component `0161-tekne-autologin` adds agetty's
    `--autologin` to the tty1–6 gettys. live-config's own `0160-sysvinit` component never
    works on Excalibur: it checks for a package named `sysvinit`, which no longer exists,
    and its `sh -c "/bin/login -f"` inittab line leaves `login` stopped by job control.

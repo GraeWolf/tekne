@@ -109,5 +109,14 @@ virtual disks. It then boots each installed disk, logs in over serial, and runs
 - Hostname, timezone, locale and keyboard match the answers file; root is locked; the user is in `sudo`.
 - Tekne's firewall is loaded, and the right GRUB package is installed.
 - The swapfile is active and RAM-sized, and the kernel's `resume=`/`resume_offset=` match the root filesystem and swapfile.
+- Autologin (DEC-042). The LUKS cases ask for it:
+  - tty1's getty has `--autologin tester`, and no other getty does.
+  - tty1 starts X with no login. X logged "Seat opened with backend 'logind'" (DEC-045).
+  - The `login` keyring existed before that boot, so the installer made it. It's unlocked on the X session's bus after the serial password login.
+  - Locking the session (`loginctl lock-sessions`) starts `i3lock`. A wrong password typed on the VM's keyboard, through QEMU's monitor, leaves it locked, and the right one unlocks it.
+  - The plain cases have no autologin, and `tekne-autologin on` refuses there. On the LUKS cases, turning it off and on again leaves `/etc/inittab` unchanged.
+- uefi-luks only: with X broken on purpose, tty1 starts X once or twice and then stays on a console shell, even after that shell is logged out. tty2's getty still asks for a login.
 
-Then it hibernates each installed system with `loginctl hibernate`, boots the disk again, and checks that the same session resumed (a token written to `/dev/shm` before hibernating is still there).
+Then it hibernates each installed system with `loginctl hibernate`, boots the disk again, and checks that the same session resumed (a token written to `/dev/shm` before hibernating is still there). In the LUKS cases, X is running on tty1 while it hibernates.
+
+`tests/smoke/upgrade.py` installs the previous release with UEFI and LUKS, upgrades it through apt, and turns autologin on with `tekne-autologin on`, the way an existing install does. The reboot is then checked like the LUKS cases above.
