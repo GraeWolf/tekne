@@ -26,7 +26,7 @@ unattended paths share every validation and install step.
    - It detects the firmware mode (`/sys/firmware/efi` means UEFI, otherwise BIOS) and shows it. Installing in the other mode isn't supported.
    - It lists candidate disks (`lsblk`), excluding the live medium, read-only devices, and disks smaller than 20 GiB plus the swapfile size (installed RAM, rounded up to the next GiB).
 2. **Target disk.** The user picks a disk with `gum choose`, which shows model, size, and existing partitions.
-3. **Encryption.** "Encrypt the disk?" (`gum confirm`). If yes, the user enters a passphrase twice (`gum input --password`), with a minimum length and a match check.
+3. **Encryption.** "Encrypt the disk?" (`gum confirm`). If yes, the user enters a passphrase twice (`gum input --password`), with a minimum length and a match check. Then "Log in automatically after unlocking?" (default yes, DEC-042): tty1 logs the user in after the LUKS passphrase, so it's the only one needed to reach the desktop. Unencrypted installs always keep the password login.
 4. **System settings**
    - Hostname (default `tekne`)
    - Timezone (a filtered list from `/usr/share/zoneinfo`)
@@ -41,6 +41,7 @@ unattended paths share every validation and install step.
     - `fstab` and `crypttab` by UUID. The LUKS mapping is named `tekne`, so the boot prompt reads "Please unlock disk tekne:" (DEC-037)
     - Hostname, `/etc/hosts`, timezone, locale, and keyboard (`/etc/default/keyboard`)
     - Create the user, lock root, and create the user's XDG directories (`xdg-user-dirs-update`, named for the chosen locale)
+    - With autologin: run the target's `tekne-autologin on USER` (from `tekne-config`, the same command existing installs use), which adds `--autologin USER` to tty1's getty line. Then create the user's `login` keyring from their password (DEC-030): PAM never sees a password under autologin, so nothing else would. `gnome-keyring-daemon --unlock` runs as the user with the password on stdin, under a private runtime directory in the target's `/run`.
     - Purge the live packages (`live-boot*`, `live-config*`, `live-tools`) and `tekne-installer`. Remove Tekne's live-only files (`0161-tekne-autologin`, `tekne-serial-getty`), and restore `/etc/inittab` from `/usr/share/sysvinit/inittab`, which drops the live image's serial test getty.
     - Create the swapfile (DEC-017): `/swapfile`, size = RAM rounded up to the next GiB, mode 0600, created with `mkswap --file` so it has no holes
     - Configure resume: `resume=UUID=<root fs UUID> resume_offset=<offset>` go on the kernel command line (`GRUB_CMDLINE_LINUX`), because initramfs-tools reads `resume_offset` only from there. The offset is the first physical extent from `filefrag -v /swapfile`. `/etc/initramfs-tools/conf.d/resume` gets `RESUME=UUID=…`, which makes sure the resume hook is in the initramfs.
@@ -78,9 +79,11 @@ initramfs) is needed.
 ## 6. Unattended mode (for tests)
 
 `tekne-install --answers <file>` reads a `KEY=value` answers file: `DISK=`,
-`CONFIRM_DISK=`, `ENCRYPT=`, `LUKS_PASSPHRASE=`, `HOSTNAME=`, `TZ=`, `LOCALE=`,
-`KEYMAP=`, `FULLNAME=`, `USERNAME=`, `PASSWORD=`, and `SERIAL_CONSOLE=`. The last
-adds a serial getty and `console=ttyS0` to the installed system, for tests. The
+`CONFIRM_DISK=`, `ENCRYPT=`, `LUKS_PASSPHRASE=`, `AUTOLOGIN=`, `HOSTNAME=`, `TZ=`,
+`LOCALE=`, `KEYMAP=`, `FULLNAME=`, `USERNAME=`, `PASSWORD=`, and `SERIAL_CONSOLE=`.
+`AUTOLOGIN=` defaults to `no`, and `yes` needs `ENCRYPT=yes`. `SERIAL_CONSOLE=`
+adds a serial getty and `console=ttyS0` to the installed system, for tests. That
+getty never logs in automatically. The
 file is parsed, never sourced, and unknown keys are an error. Every value goes
 through the same validation as the interactive prompts.
 

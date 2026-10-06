@@ -1,7 +1,8 @@
 #!/bin/bash
 # tekne-install: install the running Tekne live system to a whole disk.
 # Design: docs/installer.md. Scope: DEC-005 (one disk, wiped; ext4; optional
-# LUKS2; BIOS or UEFI). Swap and hibernation: DEC-017.
+# LUKS2; BIOS or UEFI). Swap and hibernation: DEC-017. Autologin after the
+# LUKS passphrase: DEC-042.
 #
 #   sudo tekne-install                    interactive (gum)
 #   sudo tekne-install --answers FILE     unattended, for automated tests
@@ -24,6 +25,7 @@ LIVE_PACKAGES="live-boot live-boot-initramfs-tools live-boot-doc live-config liv
 DISK=""
 ENCRYPT=no
 LUKS_PASSPHRASE=""
+AUTOLOGIN=no
 TARGET_HOSTNAME=tekne
 TIMEZONE=UTC
 LOCALE=en_US.UTF-8
@@ -115,6 +117,7 @@ read_answers() {
 			DISK)            DISK="${value}" ;;
 			ENCRYPT)         ENCRYPT="${value}" ;;
 			LUKS_PASSPHRASE) LUKS_PASSPHRASE="${value}" ;;
+			AUTOLOGIN)       AUTOLOGIN="${value}" ;;
 			HOSTNAME)        TARGET_HOSTNAME="${value}" ;;
 			TZ)              TIMEZONE="${value}" ;;
 			LOCALE)          LOCALE="${value}" ;;
@@ -155,6 +158,11 @@ validate_settings() {
 		yes) [ "${#LUKS_PASSPHRASE}" -ge 8 ] || die "encryption passphrase must be at least 8 characters" ;;
 		no)  ;;
 		*)   die "ENCRYPT must be yes or no" ;;
+	esac
+	case "${AUTOLOGIN}" in
+		yes) [ "${ENCRYPT}" = yes ] || die "AUTOLOGIN=yes needs ENCRYPT=yes" ;;
+		no)  ;;
+		*)   die "AUTOLOGIN must be yes or no" ;;
 	esac
 	valid_host "${TARGET_HOSTNAME}" || die "invalid hostname: ${TARGET_HOSTNAME}"
 	[ -f "/usr/share/zoneinfo/${TIMEZONE}" ] || die "unknown timezone: ${TIMEZONE}"
@@ -202,10 +210,18 @@ ask_encryption() {
 			[ "${LUKS_PASSPHRASE}" = "${again}" ] && break
 			gum style --foreground 1 "Passphrases don't match."
 		done
+		# DEC-042: the passphrase is then the only one needed to reach the desktop.
+		if gum confirm "Log in automatically after unlocking? The lock screen and sudo still ask for your password." --default=true; then
+			AUTOLOGIN=yes
+		else
+			[ $? -eq 1 ] || return 1
+			AUTOLOGIN=no
+		fi
 	else
 		[ $? -eq 1 ] || return 1   # Esc/Ctrl-C, not "No"
 		ENCRYPT=no
 		LUKS_PASSPHRASE=""
+		AUTOLOGIN=no
 	fi
 }
 
@@ -260,6 +276,7 @@ ask_confirm() {
 		"Disk:       ${DISK}  (ALL DATA WILL BE ERASED)" \
 		"Firmware:   $(firmware)" \
 		"Encryption: ${ENCRYPT}" \
+		"Autologin:  ${AUTOLOGIN}" \
 		"Swapfile:   $(swap_gib) GiB (hibernation)" \
 		"Hostname:   ${TARGET_HOSTNAME}" \
 		"Timezone:   ${TIMEZONE}" \
@@ -433,9 +450,41 @@ configure_system() {
 	# locale. tekne-session also runs this at every login, for existing users.
 	in_target runuser -u "${USERNAME}" -- env HOME="/home/${USERNAME}" LANG="${LOCALE}" xdg-user-dirs-update
 
+	if [ "${AUTOLOGIN}" = yes ]; then
+		setup_autologin
+	fi
+
 	if [ "${SERIAL_CONSOLE}" = yes ]; then
 		echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' >> "${TARGET}/etc/inittab"
 	fi
+}
+
+# DEC-042: tty1 logs the user in after the LUKS passphrase, through the same
+# tekne-autologin that existing installs use. PAM then never sees the password,
+# so nothing would create the login keyring, and the first app needing a secret
+# would ask for a new keyring password. Create it now from the login password
+# (DEC-030), as PAM does at a first password login.
+setup_autologin() {
+	local rundir
+	step "Setting up autologin on tty1"
+	in_target tekne-autologin on "${USERNAME}"
+	# A private runtime directory on the target's /run (a tmpfs), so the daemon
+	# can't find any other one. Its path stays short: a Unix socket path has a
+	# 108-byte limit.
+	rundir="$(chroot "${TARGET}" mktemp -d /run/tekne-keyring.XXXXXX)"
+	in_target chown "${USERNAME}:" "${rundir}"
+	printf '%s' "${PASSWORD}" | run chroot "${TARGET}" runuser -u "${USERNAME}" -- \
+		env -i HOME="/home/${USERNAME}" XDG_RUNTIME_DIR="${rundir}" PATH=/usr/bin:/bin \
+		dbus-run-session -- sh -c '
+			exec 3<&0
+			gnome-keyring-daemon --foreground --unlock --components=secrets <&3 &
+			pid=$!
+			exec 3<&-
+			keyring="${HOME}/.local/share/keyrings/login.keyring"
+			for i in $(seq 50); do [ -s "${keyring}" ] && break; sleep 0.2; done
+			kill "${pid}"; wait "${pid}"
+			[ -s "${keyring}" ]'
+	rm -rf "${TARGET}${rundir}"
 }
 
 setup_swap() {
