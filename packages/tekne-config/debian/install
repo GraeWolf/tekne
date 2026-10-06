@@ -17,4 +17,3 @@ vendor/nerd-fonts/SymbolsNerdFontMono-Regular.ttf usr/share/fonts/truetype/tekne
 files/usr/share/fontconfig/conf.avail/60-tekne-nerd-symbols.conf usr/share/fontconfig/conf.avail/
 files/etc/skel/.bash_aliases etc/skel/
 files/etc/ssh/ssh_config.d/tekne.conf etc/ssh/ssh_config.d/
-files/usr/sbin/tekne-autologin usr/sbin/
