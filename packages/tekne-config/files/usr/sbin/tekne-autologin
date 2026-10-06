@@ -1,0 +1,83 @@
+#!/bin/sh
+# Log a user in automatically on tty1 after the LUKS passphrase (DEC-042), so
+# one passphrase reaches the desktop. tty2-6, sudo and the lock screen still
+# ask for the password.
+#   sudo tekne-autologin on [USER]   (USER defaults to the one running sudo)
+#   sudo tekne-autologin off
+#   tekne-autologin status
+# "on" refuses unless / is on an encrypted (dm-crypt) device: without that,
+# anyone who powers the machine on would get the desktop. The change takes
+# effect at the next boot. tekne-install runs this for new installs.
+set -eu
+
+INITTAB=/etc/inittab
+# tty1's getty line: "1:2345:respawn:/sbin/getty [OPTIONS] 38400 tty1".
+TTY1='^[^#:][^:]*:[^:]*:[^:]*:/sbin/getty .*[[:space:]]tty1[[:space:]]*$'
+
+die() { echo "tekne-autologin: $*" >&2; exit 1; }
+usage() { die "usage: sudo tekne-autologin on [USER] | off | status"; }
+
+tty1_line() {
+	[ "$(grep -c -- "${TTY1}" "${INITTAB}")" = 1 ] \
+		|| die "${INITTAB} doesn't have exactly one /sbin/getty line for tty1"
+	grep -- "${TTY1}" "${INITTAB}"
+}
+
+current_user() {
+	tty1_line | sed -n 's/.*[[:space:]]--autologin[[:space:]]\{1,\}\([^[:space:]]*\).*/\1/p'
+}
+
+root_encrypted() {
+	src="$(findmnt -no SOURCE /)" || return 1
+	lsblk -nso TYPE "${src}" 2>/dev/null | grep -qx crypt
+}
+
+# Rewrite tty1's line: drop any --autologin, then add "--autologin USER" if given.
+write_tty1() {
+	tmp="$(mktemp "${INITTAB}.XXXXXX")"
+	trap 'rm -f "${tmp}"' EXIT
+	add=""
+	[ -z "$1" ] || add="s|/sbin/getty |/sbin/getty --autologin $1 |"
+	sed -e "\\|${TTY1}|{" \
+		-e 's/[[:space:]]--autologin[[:space:]]\{1,\}[^[:space:]]*//' \
+		-e "${add}" \
+		-e '}' "${INITTAB}" > "${tmp}"
+	chmod 644 "${tmp}"
+	mv "${tmp}" "${INITTAB}"
+	trap - EXIT
+	# Tell init to re-read inittab, except in tekne-install's chroot, where the
+	# init that would answer is the live system's.
+	ischroot || telinit q 2>/dev/null || true
+}
+
+cmd="${1:-}"
+case "${cmd}" in
+	status)
+		[ $# -eq 1 ] || usage
+		tty1_line >/dev/null
+		user="$(current_user)"
+		if [ -n "${user}" ]; then echo "on ${user}"; else echo off; fi
+		exit 0
+		;;
+	on)  [ $# -le 2 ] || usage ;;
+	off) [ $# -eq 1 ] || usage ;;
+	*)   usage ;;
+esac
+[ "$(id -u)" -eq 0 ] || die "run as root: sudo tekne-autologin $*"
+tty1_line >/dev/null
+
+if [ "${cmd}" = off ]; then
+	write_tty1 ""
+	echo "Autologin is off: tty1 asks for a password from the next boot."
+	exit 0
+fi
+
+root_encrypted || die "/ isn't on an encrypted device, so autologin would let anyone who powers the machine on into the desktop"
+user="${2:-${SUDO_USER:-}}"
+[ -n "${user}" ] || die "name the user: sudo tekne-autologin on USER"
+entry="$(getent passwd "${user}")" || die "no such user: ${user}"
+uid="$(echo "${entry}" | cut -d: -f3)"
+[ "${uid}" -ge 1000 ] && [ "${uid}" -lt 60000 ] || die "${user} isn't a regular user account"
+write_tty1 "${user}"
+echo "Autologin is on for ${user}: from the next boot, the LUKS passphrase is the only one"
+echo "needed to reach the desktop. The lock screen, sudo and tty2-6 still ask for the password."

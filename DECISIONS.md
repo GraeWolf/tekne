@@ -426,11 +426,11 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **What:** on encrypted installs, tty1 logs the user in after the LUKS passphrase and starts the X session, so one passphrase reaches the desktop. Plain installs keep the password login (DEC-014). The lock screen, `sudo` and the other ttys still ask for the password.
 - **How:**
   - `/etc/inittab` isn't a conffile: `sysvinit-core`'s postinst generates it, and the installer already rewrites it. For new installs, the installer asks whether to log in automatically when LUKS is chosen, and adds `--autologin USER` to tty1's getty line. Existing installs use `tekne-autologin on|off` (`tekne-config`), which refuses unless `/` is on dm-crypt. Package scripts never edit inittab.
-  - `tekne-startx.sh` no longer uses `exec startx`. If X exits with an error within a few seconds, it leaves a marker for the rest of the boot and stays on a console shell, so a broken X can't loop through autologin.
+  - `tekne-startx.sh` no longer uses `exec startx`. If the X session ends within 15 seconds, whatever `startx` returns, it leaves a marker holding the boot ID in `~/.cache/tekne/` and stays on a console shell, so a broken X can't loop through autologin. The status alone isn't enough: `xinit` reports success when the session client fails. A normal logout still logs out, and with autologin tty1 then logs in again.
   - The keyring starts locked and asks for the password once per session (DEC-030).
   - `xss-lock` locks before suspend and hibernate, so resuming still needs the password.
 - **Not changed:** the console greeting stays Devuan's (DEC-035).
-- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q2: one keyring prompt; Q4: no change to DEC-035).
+- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q2: one keyring prompt; Q4: no change to DEC-035). 2026-10-05 (Phase 14): the restart-loop guard counts any session shorter than 15 seconds as a failure, not only a non-zero status, and keeps its marker in `~/.cache/tekne/` (elogind removes `/run/user/UID` at logout, which is when the respawned autologin needs it).
 
 ### DEC-043 Symbols font: vendored Nerd Fonts "Symbols Only"
 - **Status:** Decided

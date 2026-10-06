@@ -434,7 +434,7 @@ Every build compiles NVIDIA's open module against the kernel the ISO ships, so a
 - **Where it's set.** `/etc/inittab` isn't a conffile. `sysvinit-core`'s postinst generates it, and the installer already rewrites it (`tekne-install`). For new installs, the installer asks "Log in automatically after unlocking?" when LUKS is chosen and adds `--autologin USER` to tty1's getty line. Existing installs use `tekne-autologin on|off` from `tekne-config`. It refuses unless `/` is on dm-crypt. Package scripts never edit inittab.
 - **Keyring (DEC-030).** With autologin, PAM never sees a password, so the `login` keyring starts locked. The first app that needs a secret (Brave, Melia) asks for the password once per session (Q2). The secrets stay encrypted with the login password, not only by LUKS.
 - **Locking.** `xss-lock` already locks before suspend and hibernate, so resuming still needs the password. Autologin affects only a fresh boot, after the LUKS passphrase.
-- **No restart loop.** A broken X (for example a bad NVIDIA setup) would otherwise loop: startx fails, getty respawns, autologin starts X again. `tekne-startx.sh` stops using `exec`. If X exits with an error within a few seconds, it leaves a marker for the rest of the boot and stays on a console shell. tty2–6 keep normal logins.
+- **No restart loop.** A broken X (for example a bad NVIDIA setup) would otherwise loop: startx fails, getty respawns, autologin starts X again. `tekne-startx.sh` stops using `exec`. If the session ends within 15 seconds, whatever `startx` returns, it leaves a marker for the rest of the boot and stays on a console shell. tty2–6 keep normal logins.
 
 **Desktop polish.**
 - **Nerd Font symbols.**

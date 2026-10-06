@@ -47,6 +47,10 @@ Description: Tekne desktop defaults and helper scripts
  tekne-screenshot, tekne-terminal, tekne-nmtui, and tekne-get-melia (downloads,
  verifies and installs the proprietary Melia email client on request).
  .
+ On encrypted installs, tekne-autologin logs a user in on tty1 after the
+ LUKS passphrase. startx on tty1 stops retrying for the rest of the boot
+ when X fails at once, so a broken X can't loop through autologin.
+ .
  Shell and session defaults for new users: bat as cat and fastfetch with
  Tekne's logo (through /etc/skel/.bash_aliases), ssh-agent keeping keys once
  unlocked, and XDG user directories. Nerd Fonts' symbols fonts for the bar's

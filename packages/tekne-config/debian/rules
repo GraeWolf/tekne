@@ -17,6 +17,6 @@ override_dh_installinit:
 
 # Keep the helper scripts, autostart and elogind sleep hooks executable.
 execute_after_dh_fixperms:
-	chmod 0755 debian/tekne-config/usr/bin/* \
+	chmod 0755 debian/tekne-config/usr/bin/* debian/tekne-config/usr/sbin/* \
 		debian/tekne-config/usr/share/tekne/herbstluftwm/autostart \
 		debian/tekne-config/usr/libexec/system-sleep/*
