@@ -550,7 +550,7 @@ Phase numbers continue from §8.
 - ✅ In QEMU (no NVIDIA GPU), installing both packages on an installed UEFI+LUKS system leaves it booting to the desktop and passing `installed-checks.sh`, hibernate/resume included. Purging them passes the same checks. Installing pulls in no systemd package.
 - ✅ (maintainer) On the laptop, with the spike rolled back, the documented install steps give Phase 11's results without any manual step. Purging brings back `nouveau`.
 
-**Phase 14: Autologin after LUKS**
+**Phase 14: Autologin after LUKS**. In progress: built in `e48b60a`, `0109f89`, `3609543` and `04dacc1`. CI on `phase14` passed every test at `04dacc1` (run 37464736825), including the autologin checks in the LUKS cases, the broken-X check on uefi-luks, and the upgrade from v0.2 with `tekne-autologin on`. The installer now creates the `login` keyring when autologin is chosen (DEC-030), and a session under 15 seconds counts as a failed X, because `xinit` reports success when the session client fails (DEC-042). Left: the laptop check.
 - The installer question, `tekne-autologin` and the change to `tekne-startx.sh` (DEC-042). docs/installer.md and docs/desktop-stack.md §2 are updated.
 - ✅ `install.py`'s LUKS cases enable autologin. After the passphrase, the session starts on tty1 with no login, and the lock screen still asks for the password. The plain cases still need a password login and still unlock the keyring through PAM (DEC-030).
 - ✅ `tekne-autologin on` refuses on a system without an encrypted root.
