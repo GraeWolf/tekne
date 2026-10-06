@@ -17,7 +17,7 @@ if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = /dev/tty1 ] \
 	_tekne_boot="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)"
 	if [ -n "${_tekne_boot}" ] && [ "$(cat "${_tekne_marker}" 2>/dev/null)" = "${_tekne_boot}" ]; then
 		echo "tekne: X failed earlier in this boot, so it isn't started again. Log:"
-		echo "  ~/.local/share/xorg/Xorg.0.log"
+		echo "  ~/.local/state/xorg/Xorg.0.log"
 		echo "To try again: rm ${_tekne_marker} && startx"
 	else
 		_tekne_start="$(date +%s)"
@@ -29,7 +29,7 @@ if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = /dev/tty1 ] \
 		mkdir -p "${_tekne_marker%/*}" && echo "${_tekne_boot}" > "${_tekne_marker}"
 		echo "tekne: X exited after less than 15 seconds (status ${_tekne_status})."
 		echo "tty1 stays on this console until the next boot. X's log:"
-		echo "  ~/.local/share/xorg/Xorg.0.log"
+		echo "  ~/.local/state/xorg/Xorg.0.log"
 		echo "To try again: rm ${_tekne_marker} && startx"
 	fi
 	unset _tekne_marker _tekne_boot _tekne_start _tekne_status

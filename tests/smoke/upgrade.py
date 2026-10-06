@@ -24,9 +24,12 @@ Then:
      backports, Brave and XLibre too.
   5. Check every Tekne package moved to this build's version, that the
      index came from the test repository, and that its decoy base-files
-     wasn't installed. Power off.
+     wasn't installed. Then turn on autologin the way an existing encrypted
+     install does (DEC-042): "tekne-autologin on". Power off.
   6. Boot again, since a kernel upgrade takes effect only after a reboot,
-     then run install.py's checks: installed-checks.sh, hibernate and resume.
+     then run install.py's checks with autologin: tty1 starts X with no
+     login, the lock screen asks for the password, installed-checks.sh,
+     hibernate and resume.
 
 install.py's answers file must stay acceptable to the previous release's
 installer, which rejects unknown keys. Needs network access, like the build.
@@ -82,10 +85,26 @@ apt-get update >/tmp/up/update.log 2>&1 && echo APT_UPDATE=ok || { echo APT_UPDA
 echo "TEKNE_INDEX=$(ls /var/lib/apt/lists/ | grep -cE '^10\.0\.2\.2(:|%3a)[0-9]+_repo_dists_excalibur_')"
 DEBIAN_FRONTEND=noninteractive apt-get -y --with-new-pkgs \
 	-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade >/tmp/up/upgrade.log 2>&1 \
-	&& echo APT_UPGRADE=ok || { echo APT_UPGRADE=failed; tail -n 30 /tmp/up/upgrade.log; }
+	&& echo APT_UPGRADE=ok || { echo APT_UPGRADE=failed; tail -n 30 /tmp/up/upgrade.log; dmesg | tail -n 20; free -m; }
 echo "UPGRADED_PACKAGES=$(grep -c '^Setting up ' /tmp/up/upgrade.log)"
 dpkg-query -W -f 'AFTER_${Package}=${Version}\n' @PKGS@
 echo "BASE_FILES=$(dpkg-query -W -f '${Version}' base-files)"
+# DEC-042's step for existing encrypted installs, like the laptop. (A kept
+# plain case can't have autologin.) First use the keyring once, as a system in
+# daily use has: the password login over serial started its daemon, which
+# creates the login keyring from that password on first use (DEC-030).
+uid="$(id -u tester)"
+sudo -u tester env HOME=/home/tester XDG_RUNTIME_DIR="/run/user/${uid}" dbus-run-session -- sh -c \
+	"gnome-keyring-daemon --start --components=secrets >/dev/null 2>&1; dbus-send --session --print-reply \
+	--dest=org.freedesktop.secrets /org/freedesktop/secrets/collection/login \
+	org.freedesktop.DBus.Properties.Get string:org.freedesktop.Secret.Collection string:Locked" >/dev/null 2>&1
+echo "KEYRING_BEFORE=$([ -s /home/tester/.local/share/keyrings/login.keyring ] && echo present || echo missing)"
+if lsblk -rno TYPE | grep -q crypt; then
+	tekne-autologin on tester >/tmp/up/autologin.log 2>&1 \
+		&& echo AUTOLOGIN_ON=ok || { echo AUTOLOGIN_ON=failed; cat /tmp/up/autologin.log; }
+else
+	echo AUTOLOGIN_ON=plain
+fi
 """
 
 
@@ -224,7 +243,8 @@ def main():
     upgraded = time.monotonic()
 
     problems = []
-    for key, want in [("APT_UPDATE", "ok"), ("APT_UPGRADE", "ok")]:
+    for key, want in [("APT_UPDATE", "ok"), ("APT_UPGRADE", "ok"), ("KEYRING_BEFORE", "present"),
+                      ("AUTOLOGIN_ON", "ok" if luks else "plain")]:
         if results.get(key) != want:
             problems.append(f"{key}: {results.get(key)!r}")
     if results.get("ONE_TIME") not in ("done", "not-needed"):
@@ -246,11 +266,11 @@ def main():
     # Reboot into the upgraded system, then the full installed-system checks.
     if not problems:
         try:
-            checks = install.boot_and_check(mode, luks, disk, vars_path, workdir)
+            checks = install.boot_and_check(mode, luks, disk, vars_path, workdir, autologin=luks)
         except (TimeoutError, RuntimeError) as err:
             problems.append(f"after the upgrade: {err}")
             checks = {}
-        want = install.expected(mode, luks, upgraded=True)
+        want = install.expected(mode, luks, upgraded=True, autologin=luks)
         problems += [f"{k}: got {checks.get(k)!r}, want {v!r}" for k, v in want.items()
                      if checks and checks.get(k) != v]
 

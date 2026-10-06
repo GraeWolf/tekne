@@ -5,6 +5,7 @@ import http.server
 import os
 import select
 import shutil
+import socket
 import socketserver
 import subprocess
 import threading
@@ -68,11 +69,14 @@ def uefi_vars(path):
     return path
 
 
-def qemu_command(mode, vars_path=None, memory=2048, cpus=2):
-    """Base QEMU command: headless, serial console on stdio, KVM if available."""
+def qemu_command(mode, vars_path=None, memory=2048, cpus=2, monitor=None):
+    """Base QEMU command: headless, serial console on stdio, KVM if available.
+    With monitor (a socket path), QEMU's human monitor listens there, for
+    sendkeys()."""
     cmd = [
         "qemu-system-x86_64", "-m", str(memory), "-smp", str(cpus),
-        "-display", "none", "-serial", "stdio", "-monitor", "none", "-no-reboot",
+        "-display", "none", "-serial", "stdio",
+        "-monitor", f"unix:{monitor},server=on,wait=off" if monitor else "none", "-no-reboot",
     ]
     if os.access("/dev/kvm", os.R_OK | os.W_OK):
         cmd += ["-enable-kvm", "-cpu", "host"]
@@ -83,6 +87,31 @@ def qemu_command(mode, vars_path=None, memory=2048, cpus=2):
             "-drive", f"if=pflash,format=raw,file={vars_path}",
         ]
     return cmd
+
+
+# QEMU key names for the characters sendkeys() can type (US layout; letters,
+# digits and "-" are the same keys on GB).
+_KEYS = {"-": "minus", "\n": "ret", " ": "spc", ".": "dot"}
+
+
+def sendkeys(monitor, text):
+    """Type text on the VM's keyboard (not the serial console), through QEMU's
+    monitor socket, for programs that read the keyboard, like a screen locker."""
+    keys = []
+    for ch in text:
+        if not ((ch.isascii() and ch.isalnum()) or ch in _KEYS):
+            raise ValueError(f"sendkeys can't type {ch!r}")
+        keys.append("shift-" + ch.lower() if ch.isupper() else _KEYS.get(ch, ch))
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+        sock.connect(monitor)
+        sock.settimeout(1)
+        for key in keys:
+            sock.sendall(f"sendkey {key}\n".encode())
+            time.sleep(0.15)
+            try:
+                sock.recv(65536)   # the monitor's echo; keeps its buffer from filling
+            except socket.timeout:
+                pass
 
 
 def start(cmd):
