@@ -43,7 +43,6 @@ import shutil
 import subprocess
 import sys
 import time
-import urllib.request
 
 import install
 from qemu_serial import OUT, Serial, qemu_command, serve, start, stop
@@ -145,8 +144,9 @@ def previous_release_iso():
     os.makedirs(cache, exist_ok=True)
     url = f"{RELEASES_URL}/{tag}/{name}"
     print(f"Downloading {url}")
-    with urllib.request.urlopen(url) as response, open(path + ".part", "wb") as f:
-        shutil.copyfileobj(response, f, 1 << 20)
+    # curl, not urllib: it tries IPv6 and IPv4 side by side, so a network with
+    # broken IPv6 doesn't stall the download until GitHub's signed link expires.
+    subprocess.run(["curl", "-fsSL", "--retry", "3", "-o", path + ".part", url], check=True)
     got = sha256(path + ".part")
     if got != want:
         os.remove(path + ".part")

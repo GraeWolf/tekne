@@ -264,6 +264,11 @@ tested tag (DEC-039).
    signing subkey, checks the signatures against `keys/tekne.gpg`, and deploys
    it to GitHub Pages: a release goes into `excalibur` and `excalibur-rc`, a
    pre-release into `excalibur-rc` only.
+   Once it has deployed, run `tests/smoke/release.py`. It installs the
+   published ISO in QEMU and checks, against the live repository, that the
+   fresh install has no `tekne-*` updates waiting, and that the repository
+   offers every `.deb` the release carries at its version. It needs no
+   arguments: it checks the newest published release.
 6. After a **final** release, point `tests/smoke/previous-release` at it (its
    tag, ISO name, and the ISO's SHA-256 from its `.sha256` asset), so CI's
    upgrade test starts from it (SPEC §8, Phase 9). Release candidates don't
