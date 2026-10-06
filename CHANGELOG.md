@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3-rc1 (2026-10-06)
 
 Tekne 0.3 makes a hybrid-graphics laptop a daily driver (SPEC §9).
 - NVIDIA's own driver is an opt-in install, with PRIME offload and the idle
