@@ -351,7 +351,7 @@ Phase numbers continue from §7.
 > decisions are DEC-041 (NVIDIA), DEC-042 (autologin) and DEC-043 (the symbols
 > font). On 2026-10-05, after the Phase 11 spike, the maintainer redesigned DEC-041 and
 > added DEC-044 (hardware quirks) and DEC-045 (X's seat backend); answers in §9.6.
-> Nothing is built yet.
+> Phases 12, 13 and 14 are complete. Phase 11 stays open for the HDMI test, which needs an external monitor.
 
 ### 9.1 Theme: the hybrid-graphics laptop as a daily driver
 
@@ -550,12 +550,12 @@ Phase numbers continue from §8.
 - ✅ In QEMU (no NVIDIA GPU), installing both packages on an installed UEFI+LUKS system leaves it booting to the desktop and passing `installed-checks.sh`, hibernate/resume included. Purging them passes the same checks. Installing pulls in no systemd package.
 - ✅ (maintainer) On the laptop, with the spike rolled back, the documented install steps give Phase 11's results without any manual step. Purging brings back `nouveau`.
 
-**Phase 14: Autologin after LUKS**. In progress: built in `e48b60a`, `0109f89`, `3609543` and `04dacc1`. CI on `phase14` passed every test at `04dacc1` (run 37464736825), including the autologin checks in the LUKS cases, the broken-X check on uefi-luks, and the upgrade from v0.2 with `tekne-autologin on`. The installer now creates the `login` keyring when autologin is chosen (DEC-030), and a session under 15 seconds counts as a failed X, because `xinit` reports success when the session client fails (DEC-042). Left: the laptop check.
+**Phase 14: Autologin after LUKS**. ✔ Complete (2026-10-06). Built in `e48b60a`, `0109f89`, `3609543` and `04dacc1`. CI on `phase14` passed every test at `04dacc1` (run 37464736825), including the autologin checks in the LUKS cases, the broken-X check on uefi-luks, and the upgrade from v0.2 with `tekne-autologin on`. The installer now creates the `login` keyring when autologin is chosen (DEC-030), and a session under 15 seconds counts as a failed X, because `xinit` reports success when the session client fails (DEC-042). On the laptop (packages `0.3~rc1~dev89`, kernel 7.2.6), the maintainer ran `tekne-autologin on` and went from the LUKS passphrase straight to the desktop. That check found `tekne-autologin` in `/usr/sbin`, out of normal users' `PATH`, so it moved to `/usr/bin`.
 - The installer question, `tekne-autologin` and the change to `tekne-startx.sh` (DEC-042). docs/installer.md and docs/desktop-stack.md §2 are updated.
 - ✅ `install.py`'s LUKS cases enable autologin. After the passphrase, the session starts on tty1 with no login, and the lock screen still asks for the password. The plain cases still need a password login and still unlock the keyring through PAM (DEC-030).
 - ✅ `tekne-autologin on` refuses on a system without an encrypted root.
 - ✅ With a deliberately broken X configuration, tty1 starts X at most twice and then stays on a console shell. tty2 still offers a normal login.
-- ✅ (maintainer) On the laptop (0.2, upgraded through apt), `tekne-autologin on` gives one passphrase from power-on to desktop.
+- ✅ (maintainer) On the laptop (0.2, upgraded through apt), `tekne-autologin on` gives one passphrase from power-on to desktop. Passed 2026-10-06.
 
 **Phase 15: Docs and the 0.3 release**
 - README, `docs/customizing.md` (the shell snippet line for existing users, NVIDIA and autologin), docs/testing.md, and the CHANGELOG.
