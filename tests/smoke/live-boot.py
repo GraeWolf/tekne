@@ -19,7 +19,7 @@ import tempfile
 import time
 
 from qemu_serial import (OUT, SERIAL_ENTRY_HOTKEY, SERIAL_ENTRY_TITLE, Serial,
-                         newest_iso, qemu_command, start, stop, uefi_vars)
+                         newest_iso, parse_results, qemu_command, start, stop, uefi_vars)
 
 LIVE_USER, LIVE_PASSWORD = "user", "live"
 
@@ -92,8 +92,7 @@ def run(mode, iso):
                 proc.kill()
 
     lines = [line.strip() for line in output.splitlines()]
-    results = dict(line.split("=", 1) for line in lines
-                   if "=" in line and not line.startswith(("PKG=", "LISTEN=")))
+    results = parse_results(output, skip=("PKG", "LISTEN"))
     packages = [line[4:] for line in lines if line.startswith("PKG=")]
     down = [p for p in DESKTOP_PROCESSES if results.get(f"PROC_{p}") != "up"]
     listening = [line[7:] for line in lines if line.startswith("LISTEN=")]

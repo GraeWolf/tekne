@@ -45,7 +45,7 @@ import sys
 import time
 
 import install
-from qemu_serial import OUT, Serial, qemu_command, serve, start, stop
+from qemu_serial import OUT, Serial, parse_results, qemu_command, serve, start, stop
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PREVIOUS = os.path.join(HERE, "previous-release")
@@ -191,8 +191,7 @@ def upgrade(mode, luks, disk, vars_path, workdir, port):
         finally:
             if proc.poll() is None:
                 proc.kill()
-    return output, dict(line.strip().split("=", 1) for line in output.splitlines()
-                        if "=" in line and line.strip()[:1].isupper())
+    return output, parse_results(output)
 
 
 def main():

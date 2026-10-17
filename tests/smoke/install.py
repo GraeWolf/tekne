@@ -37,7 +37,8 @@ import sys
 import time
 
 from qemu_serial import (OUT, SERIAL_ENTRY_HOTKEY, SERIAL_ENTRY_TITLE, Serial,
-                         newest_iso, qemu_command, sendkeys, start, stop, uefi_vars)
+                         newest_iso, parse_results, qemu_command, sendkeys, start, stop,
+                         uefi_vars)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHECKS = os.path.join(HERE, "installed-checks.sh")
@@ -144,7 +145,7 @@ def run_as_root(con, name, timeout=CMD_TIMEOUT):
     con.expect(BEGIN, CMD_TIMEOUT)
     output = con.expect(END, timeout)
     con.expect("$ ", CMD_TIMEOUT)
-    return dict(line.strip().split("=", 1) for line in output.splitlines() if "=" in line)
+    return parse_results(output)
 
 
 def shell_flag(con, command, name, timeout=CMD_TIMEOUT):

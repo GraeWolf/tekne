@@ -33,7 +33,7 @@ import sys
 import time
 
 import install
-from qemu_serial import OUT, Serial, newest_iso, qemu_command, serve, start, stop
+from qemu_serial import OUT, Serial, newest_iso, parse_results, qemu_command, serve, start, stop
 
 WORK = os.path.join(OUT, "nvidia-test")
 TEST_REPO = os.path.join(OUT, "test-repo")
@@ -124,8 +124,7 @@ def run_guest(mode, luks, disk, vars_path, workdir, name, script_text, extra_fw_
         finally:
             if proc.poll() is None:
                 proc.kill()
-    return output, dict(line.strip().split("=", 1) for line in output.splitlines()
-                        if "=" in line and line.strip()[:1].isupper())
+    return output, parse_results(output)
 
 
 def check(mode, luks, disk, vars_path, workdir, label):

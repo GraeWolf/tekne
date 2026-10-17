@@ -31,7 +31,7 @@ import tempfile
 import time
 
 from qemu_serial import (OUT, SERIAL_ENTRY_HOTKEY, SERIAL_ENTRY_TITLE, Serial,
-                         newest_iso, qemu_command, serve, start, stop)
+                         newest_iso, parse_results, qemu_command, serve, start, stop)
 
 TEST_REPO = os.path.join(OUT, "test-repo")
 LIVE_USER, LIVE_PASSWORD = "user", "live"
@@ -143,8 +143,7 @@ def main():
                     proc.kill()
                 server.shutdown()
 
-    results = dict(line.strip().split("=", 1) for line in output.splitlines()
-                   if "=" in line and line.strip()[:1].isupper())
+    results = parse_results(output)
     want = {
         "SHIPPED": "present",
         "GOOD_UPDATE": "ok", "GOOD_TEKNE_PRIO": "500", "DECOY_PRIO": "-1",
