@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3-rc2 (2026-10-17)
 
 Fixes from dogfooding 0.3-rc1 on the development laptop.
 
