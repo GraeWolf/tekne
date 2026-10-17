@@ -26,7 +26,7 @@ and configured by `tekne-config`.
 | Network UI | `network-manager` (`nmcli`, `nmtui`) | DEC-011. No tray applet. Clicking polybar's network module runs `tekne-nmtui`: `nmtui` in a floating, centred terminal |
 | Audio | `pipewire`, `pipewire-pulse`, `wireplumber`, `pavucontrol`, `pamixer` | DEC-012 |
 | Bluetooth | `bluez`, `blueman` | |
-| Power/laptop | elogind (lid/suspend/hibernate, DEC-017), `brightnessctl`, `tlp` | tlp has no systemd dependency. Its sleep hook is in a directory Devuan's elogind doesn't read, so tekne-config's `/usr/libexec/system-sleep/49-tekne-tlp` runs it (DEC-025) |
+| Power/laptop | elogind (lid/suspend/hibernate, DEC-017), `brightnessctl`, `tlp`, `upower` | tlp has no systemd dependency. Its sleep hook is in a directory Devuan's elogind doesn't read, so tekne-config's `/usr/libexec/system-sleep/49-tekne-tlp` runs it (DEC-025). UPower hybrid-sleeps at 2% battery, its default (DEC-017), and gives apps battery status over D-Bus. tekne-config's `tekne-no-ac-wake` hook stops AC adapters from waking the system (DEC-046) |
 | Terminal | `alacritty` | Started through `tekne-terminal`, Tekne's `x-terminal-emulator` alternative, which adds Tekne's config (DEC-034) |
 | File manager | `thunar` + `gvfs`, `tumbler` | Removable media and trash. `tumbler` provides Thunar's thumbnails |
 | Editor | `neovim` (CLI) + `mousepad` (GUI) | |

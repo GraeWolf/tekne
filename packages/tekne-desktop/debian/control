@@ -42,6 +42,9 @@ Depends: ${misc:Depends},
  blueman,
  brightnessctl,
  tlp,
+# Battery policy: at critical charge, hybrid sleep saves the session to disk
+# (DEC-017). UPower's own default action; Tekne doesn't change its config.
+ upower,
 # Keyring (DEC-030)
  gnome-keyring,
  libpam-gnome-keyring,

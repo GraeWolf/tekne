@@ -1,0 +1,19 @@
+#!/bin/sh
+# Tekne (DEC-046): an AC adapter never wakes the system from sleep. The kernel
+# lets one wake it on every "AC changed" notification, and some firmware sends
+# those without anything being plugged in: on the development laptop, a
+# closed lid then woke every ~30 s until the battery died. Plugging in a
+# charger doesn't need to wake a sleeping laptop either.
+# This is done before each sleep rather than in a udev rule: the AC driver is
+# a module that udev loads, so a rule could run before the device's
+# power/wakeup file exists.
+# elogind runs this with $1 = pre|post and $2 = the sleep operation.
+[ "$1" = pre ] || exit 0
+
+for supply in /sys/class/power_supply/*; do
+	[ "$(cat "${supply}/type" 2>/dev/null)" = Mains ] || continue
+	[ "$(cat "${supply}/power/wakeup" 2>/dev/null)" = enabled ] || continue
+	echo disabled > "${supply}/power/wakeup" \
+		&& echo "tekne-no-ac-wake: ${supply##*/} no longer wakes the system" > /dev/kmsg
+done
+exit 0

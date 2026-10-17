@@ -78,6 +78,19 @@ kmsg_before="$(dmesg | grep -c tekne-asus-keyboard)"
 /usr/libexec/system-sleep/tekne-asus-keyboard post suspend
 hook_rc=$?
 echo "ASUS_KBD_HOOK=$([ "${hook_rc}" = 0 ] && [ "$(dmesg | grep -c tekne-asus-keyboard)" = "${kmsg_before}" ] && echo idle || echo acted)"
+# DEC-046: AC adapters don't wake the system. QEMU has none, so the hook must
+# run cleanly and change nothing.
+hook=/usr/libexec/system-sleep/tekne-no-ac-wake
+kmsg_before="$(dmesg | grep -c tekne-no-ac-wake)"
+if [ -x "${hook}" ]; then
+	"${hook}" pre suspend
+	echo "AC_WAKE_HOOK=$([ $? = 0 ] && [ "$(dmesg | grep -c tekne-no-ac-wake)" = "${kmsg_before}" ] && echo idle || echo acted)"
+else
+	echo "AC_WAKE_HOOK=missing"
+fi
+# DEC-017: UPower hybrid-sleeps at critical battery. Asking it starts the
+# daemon through D-Bus activation, which must work without systemd.
+echo "UPOWER_CRITICAL=$(upower --dump 2>/dev/null | awk '$1 == "critical-action:" { print $2; exit }')"
 echo "TLP_SLEEP_HOOK=$([ -x /usr/libexec/system-sleep/49-tekne-tlp ] && [ -x /usr/lib/elogind/system-sleep/49-tlp-sleep ] && echo linked || echo missing)"
 echo "GRUB_PKG=$(dpkg-query -W -f '${Package} ${db:Status-Status}\n' grub-pc grub-efi-amd64 2>/dev/null | awk '$2 == "installed" { print $1 }')"
 # Phase 12, per user: XDG directories made by the installer, and the shell

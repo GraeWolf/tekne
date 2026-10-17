@@ -56,5 +56,5 @@ Description: Tekne desktop defaults and helper scripts
  unlocked, and XDG user directories. Nerd Fonts' symbols fonts for the bar's
  and terminal's icons.
  .
- elogind sleep hooks: TLP's suspend/resume handling, and a re-probe of ASUS
- N-KEY keyboards after resume.
+ elogind sleep hooks: TLP's suspend/resume handling, a re-probe of ASUS
+ N-KEY keyboards after resume, and AC adapters kept from waking the system.

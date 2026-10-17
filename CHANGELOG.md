@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+Fixes from dogfooding 0.3-rc1 on the development laptop.
+
+### Fixed
+- **Battery drained while suspended:** with the lid closed, the laptop woke
+  every ~30 seconds and went back to sleep, until the battery died. Its
+  firmware sends "AC changed" notifications with nothing plugged in, and an AC
+  adapter was allowed to wake the system. AC adapters no longer wake any Tekne
+  system (DEC-046); the lid, keyboard and power button still do.
+
+### Added
+- **Critical battery:** `upower` is installed. At 2% battery it hybrid-sleeps:
+  the session is saved to disk and the laptop suspends, so a flat battery no
+  longer loses it (DEC-017). Apps also get battery status from it.
+
+**Known limitations** (added to 0.3-rc1's):
+- On the development laptop, a closed lid still wakes the system about every
+  20 minutes for ~25 seconds, on an ACPI notification from the firmware
+  (DEC-046). It sleeps deeply in between.
+- Two hard hangs on 2026-10-10 are unexplained: the laptop kept no kernel log
+  then. If you see one, the kernel log from that boot is the useful part.
+
 ## 0.3-rc1 (2026-10-06)
 
 Tekne 0.3 makes a hybrid-graphics laptop a daily driver (SPEC §9).

@@ -113,6 +113,21 @@ suspend:
    your password once. After that, nothing asks again until the next boot.
 4. **Logout:** the power menu's logout brings the desktop straight back.
 
+### Sleeping with the lid closed
+
+On an installed system, on battery (DEC-046, DEC-017):
+
+1. Note the count: `cat /sys/power/suspend_stats/success`. Close the lid for 30
+   minutes without touching anything, then open it.
+2. The count should have risen by one, or by a few if the firmware sends
+   periodic notifications (the development laptop wakes about every 20
+   minutes). A rise of about two per minute means something wakes it in a
+   loop. With `echo 1 | sudo tee /sys/power/pm_debug_messages` first, the
+   kernel log names each wake's IRQ ("Triggering wakeup from IRQ").
+3. Critical battery: `upower --dump` shows `critical-action: HybridSleep`. To
+   watch it act, let the battery reach 2%: the session is saved to disk and the
+   laptop suspends.
+
 ## Before installing on a machine you depend on
 
 The installer erases the whole disk (DEC-005): there's no dual-boot option.

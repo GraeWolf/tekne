@@ -95,6 +95,7 @@ def expected(mode, luks, upgraded=False, autologin=False):
         "HIBERNATE": "resumed",
         "KEYRING_DAEMON": "running", "LOGIN_KEYRING": "unlocked", "PAM_ORDER": "ok",
         "SEAT_BACKEND": "logind", "ASUS_KBD_HOOK": "idle", "TLP_SLEEP_HOOK": "linked",
+        "AC_WAKE_HOOK": "idle", "UPOWER_CRITICAL": "HybridSleep",
     }
 
 

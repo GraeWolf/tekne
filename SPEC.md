@@ -519,6 +519,12 @@ so it most likely waits for Freia to become stable. The options:
 - **R2, checking a published release:** a permanent `tests/smoke/release.py`, run by hand after each publish (docs/building.md, "Release").
 - **R3, dogfooding:** at least two days of daily use of 0.3-rc1 on the laptop before 0.3, including suspend and hibernate cycles with NVIDIA's driver and autologin.
 
+**After 0.3-rc1's dogfooding (2026-10-17):** two hard hangs on 2026-10-10 (no persistent kernel log then, so their cause is unknown), and a suspend loop on 2026-10-15 that ran the battery flat and lost the session. Diagnosed with a kernel log (`rsyslog`, laptop-local) and lid-closed tests: the firmware's "AC changed" notifications woke the laptop every ~30 s (DEC-046).
+- **S1, AC adapter wakeup:** turned off for all hardware, by a sleep hook in `tekne-config` (DEC-046). A device-matched quirk under DEC-044 was the alternative.
+- **S2, critical battery:** install `upower`, whose default action at 2% is hybrid sleep (DEC-017). The maintainer first asked for hibernation, then agreed to the default, which needs no change to UPower's conffile.
+- **S3, the battery's wakeup:** tested by hand and ruled out: turning it off doesn't stop the remaining ~20-minute wake, which becomes a known limitation (DEC-046).
+- **S4, the 2026-10-10 hangs:** if none recurs by 2026-10-23, 0.3 is released with them listed as under investigation. The laptop keeps its debugging setup (persistent kernel log, SysRq on Fn+F4) until then.
+
 ### 9.7 Phases and acceptance criteria
 Phase numbers continue from §8.
 
@@ -562,9 +568,14 @@ Phase numbers continue from §8.
 - ✅ With a deliberately broken X configuration, tty1 starts X at most twice and then stays on a console shell. tty2 still offers a normal login.
 - ✅ (maintainer) On the laptop (0.2, upgraded through apt), `tekne-autologin on` gives one passphrase from power-on to desktop. Passed 2026-10-06.
 
-**Phase 15: Docs and the 0.3 release**. In progress (answers R1–R3 in §9.6). `v0.3-rc1` was released on 2026-10-06 from `1017870`: CI run 37529245021 passed every test on the tag and made the draft, and the maintainer published it and approved the repository publish (run 37536020498). `excalibur-rc` serves all six packages at `0.3~rc1`, signed by subkey `82C3…`, and `excalibur` still serves 0.2. `tests/smoke/release.py v0.3-rc1` passed: a fresh install from the published ISO has no `tekne-*` updates waiting, and the repository offers all six `.deb`s at `0.3~rc1`. The release notes' one relative link was replaced by a full URL in the draft before publishing, and in the CHANGELOG. `VERSION` is now `0.3-rc2`.
+**Phase 15: Docs and the 0.3 release**. In progress (answers R1–R3 in §9.6). `v0.3-rc1` was released on 2026-10-06 from `1017870`: CI run 37529245021 passed every test on the tag and made the draft, and the maintainer published it and approved the repository publish (run 37536020498). `excalibur-rc` serves all six packages at `0.3~rc1`, signed by subkey `82C3…`, and `excalibur` still serves 0.2. `tests/smoke/release.py v0.3-rc1` passed: a fresh install from the published ISO has no `tekne-*` updates waiting, and the repository offers all six `.deb`s at `0.3~rc1`. The release notes' one relative link was replaced by a full URL in the draft before publishing, and in the CHANGELOG. `VERSION` is now `0.3-rc2`. Dogfooding found a suspend loop and two hangs (answers S1–S4 in §9.6), so 0.3-rc2 comes first.
 - README, `docs/customizing.md` (the shell snippet line for existing users, NVIDIA and autologin), docs/testing.md, and the CHANGELOG.
-- ✅ `v0.3-rc1` is released through CI (DEC-039) and published to `excalibur-rc`. The laptop upgrades to it with `apt upgrade` and is dogfooded.
+- ✅ `v0.3-rc1` is released through CI (DEC-039) and published to `excalibur-rc`. The laptop upgrades to it with `apt upgrade` and is dogfooded. Done 2026-10-06.
+- For 0.3-rc2: `tekne-config`'s `tekne-no-ac-wake` sleep hook (DEC-046) and `upower` in `tekne-desktop` (DEC-017), with docs/desktop-stack.md, docs/testing.md and the CHANGELOG.
+- ✅ On each installed system, `install.py` checks that the hook is installed and does nothing in QEMU (no AC adapter), and that `upower --dump` reports `critical-action: HybridSleep`, which also shows UPower starts through D-Bus without systemd.
+- ✅ `v0.3-rc2` is released and published to `excalibur-rc`, and `release.py` passes on it.
+- ✅ (maintainer) On the laptop with 0.3-rc2, a night with the lid closed on battery has no 30-second wakes, and the kernel log shows the hook turning off the AC adapter's wakeup.
+- ✅ No hard hang recurs on the laptop by 2026-10-23 (S4), or one that does is explained by its kernel log.
 - ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.
 
 ## 10. Notes for Claude Code sessions
