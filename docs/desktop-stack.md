@@ -51,19 +51,22 @@ Debian's standard `startx` → `Xsession` path, so a user's own `~/.xinitrc` or
 `~/.xsession` still takes precedence. Order matters:
 
 1. **tty1 login.** On encrypted installs with autologin (DEC-042), tty1's getty runs
-   `--autologin USER`, set by the installer or `tekne-autologin on`, so the LUKS
-   passphrase is the only one before the desktop. tty2–6 and the serial getty never log in
-   automatically. `/etc/profile.d/tekne-startx.sh` exports `LIBSEAT_BACKEND=logind`
+   through `tekne-autologin-getty USER`, set by the installer or `tekne-autologin on`, so
+   the LUKS passphrase is the only one before the desktop. Only the first login of each
+   boot is automatic: the wrapper creates `/run/tekne-autologin` when it uses it, and
+   later tty1 logins in that boot (after a logout or an X crash) ask for the password.
+   tty2–6 and the serial getty never log in automatically. `/etc/profile.d/tekne-startx.sh` exports `LIBSEAT_BACKEND=logind`
    (unless already set) and runs `startx` on tty1 if `$DISPLAY` is unset. To opt out, a
    user creates `~/.config/tekne/no-startx`.
    - **No restart loop.** `startx` isn't `exec`ed. When it returns after 15 seconds or more
-     (a normal logout or a later crash), the shell logs out, so with autologin tty1 logs
-     straight back in. When it returns sooner, whatever its status (`xinit` reports success
+     (a normal logout or a later crash), the shell logs out, and tty1 asks for the
+     password. When it returns sooner, whatever its status (`xinit` reports success
      when the session client fails), the shell writes the boot ID to
      `~/.cache/tekne/startx-failed` and stays on the console, and tty1 doesn't start X
-     again in that boot. The message names X's log, `~/.local/state/xorg/Xorg.0.log`. The
-     marker isn't in `/run/user/UID`, which elogind removes at logout, exactly when the
-     respawned autologin needs it.
+     again in that boot. The message names X's log, `~/.local/state/xorg/Xorg.0.log`, and
+     `~/.local/state/tekne/startx.log`, where `startx`'s output goes (X's own error
+     messages included; the previous run's is kept as `.old`). The marker isn't in
+     `/run/user/UID`, which elogind removes at logout.
 
    In the live session, Tekne's live-config component `0161-tekne-autologin` adds agetty's
    `--autologin` to the tty1–6 gettys. live-config's own `0160-sysvinit` component never

@@ -41,7 +41,7 @@ unattended paths share every validation and install step.
     - `fstab` and `crypttab` by UUID. The LUKS mapping is named `tekne`, so the boot prompt reads "Please unlock disk tekne:" (DEC-037)
     - Hostname, `/etc/hosts`, timezone, locale, and keyboard (`/etc/default/keyboard`)
     - Create the user, lock root, and create the user's XDG directories (`xdg-user-dirs-update`, named for the chosen locale)
-    - With autologin: run the target's `tekne-autologin on USER` (from `tekne-config`, the same command existing installs use), which adds `--autologin USER` to tty1's getty line. Then create the user's `login` keyring from their password (DEC-030): PAM never sees a password under autologin, so nothing else would. `gnome-keyring-daemon --unlock` runs as the user with the password on stdin, under a private runtime directory in the target's `/run`.
+    - With autologin: run the target's `tekne-autologin on USER` (from `tekne-config`, the same command existing installs use), which runs tty1's getty through `tekne-autologin-getty USER`: an automatic login once per boot. Then create the user's `login` keyring from their password (DEC-030): PAM never sees a password under autologin, so nothing else would. `gnome-keyring-daemon --unlock` runs as the user with the password on stdin, under a private runtime directory in the target's `/run`.
     - Purge the live packages (`live-boot*`, `live-config*`, `live-tools`) and `tekne-installer`. Remove Tekne's live-only files (`0161-tekne-autologin`, `tekne-serial-getty`), and restore `/etc/inittab` from `/usr/share/sysvinit/inittab`, which drops the live image's serial test getty.
     - Create the swapfile (DEC-017): `/swapfile`, size = RAM rounded up to the next GiB, mode 0600, created with `mkswap --file` so it has no holes
     - Configure resume: `resume=UUID=<root fs UUID> resume_offset=<offset>` go on the kernel command line (`GRUB_CMDLINE_LINUX`), because initramfs-tools reads `resume_offset` only from there. The offset is the first physical extent from `filefrag -v /swapfile`. `/etc/initramfs-tools/conf.d/resume` gets `RESUME=UUID=…`, which makes sure the resume hook is in the initramfs.
@@ -110,12 +110,12 @@ virtual disks. It then boots each installed disk, logs in over serial, and runs
 - Tekne's firewall is loaded, and the right GRUB package is installed.
 - The swapfile is active and RAM-sized, and the kernel's `resume=`/`resume_offset=` match the root filesystem and swapfile.
 - Autologin (DEC-042). The LUKS cases ask for it:
-  - tty1's getty has `--autologin tester`, and no other getty does.
+  - tty1's getty runs through `tekne-autologin-getty tester`, no other getty logs in automatically, and the boot's one automatic login has been used. X's output is in `startx.log`.
   - tty1 starts X with no login. X logged "Seat opened with backend 'logind'" (DEC-045).
   - The `login` keyring existed before that boot, so the installer made it. It's unlocked on the X session's bus after the serial password login.
   - Locking the session (`loginctl lock-sessions`) starts `i3lock`. A wrong password typed on the VM's keyboard, through QEMU's monitor, leaves it locked, and the right one unlocks it.
   - The plain cases have no autologin, and `tekne-autologin on` refuses there. On the LUKS cases, turning it off and on again leaves `/etc/inittab` unchanged.
-- uefi-luks only: with X broken on purpose, tty1 starts X once or twice and then stays on a console shell, even after that shell is logged out. tty2's getty still asks for a login.
+- uefi-luks only: with X broken on purpose, tty1 starts X once or twice and then stays on a console shell, even after that shell is logged out. Logging that shell out brings a password prompt, not another automatic login, and tty2's getty still asks for a login.
 
 Then it hibernates each installed system with `loginctl hibernate`, boots the disk again, and checks that the same session resumed (a token written to `/dev/shm` before hibernating is still there). In the LUKS cases, X is running on tty1 while it hibernates.
 

@@ -433,7 +433,7 @@ Every build compiles NVIDIA's open module against the kernel the ISO ships, so a
 - **TLP's sleep hook (DEC-025).** `tlp` puts it in `/usr/lib/elogind/system-sleep/`, which Devuan's elogind never reads. `tekne-config` runs it from `/usr/libexec/system-sleep/49-tekne-tlp`, a wrapper that does nothing without tlp.
 
 **Autologin (DEC-042).**
-- **Where it's set.** `/etc/inittab` isn't a conffile. `sysvinit-core`'s postinst generates it, and the installer already rewrites it (`tekne-install`). For new installs, the installer asks "Log in automatically after unlocking?" when LUKS is chosen and adds `--autologin USER` to tty1's getty line. Existing installs use `tekne-autologin on|off` from `tekne-config`. It refuses unless `/` is on dm-crypt. Package scripts never edit inittab.
+- **Where it's set.** `/etc/inittab` isn't a conffile. `sysvinit-core`'s postinst generates it, and the installer already rewrites it (`tekne-install`). For new installs, the installer asks "Log in automatically after unlocking?" when LUKS is chosen. Both new and existing installs use `tekne-autologin on|off` from `tekne-config`, which runs tty1's getty through `tekne-autologin-getty`: only the first login of each boot is automatic (§9.6, T1). It refuses unless `/` is on dm-crypt. Package scripts never edit inittab.
 - **Keyring (DEC-030).** With autologin, PAM never sees a password, so the `login` keyring starts locked. The first app that needs a secret (Brave, Melia) asks for the password once per session (Q2). The secrets stay encrypted with the login password, not only by LUKS. Nothing would create that keyring on a new install, since PAM never sees the password, so the installer creates it from the login password, as PAM does at a first password login. Existing installs already have one.
 - **Locking.** `xss-lock` already locks before suspend and hibernate, so resuming still needs the password. Autologin affects only a fresh boot, after the LUKS passphrase.
 - **No restart loop.** A broken X (for example a bad NVIDIA setup) would otherwise loop: startx fails, getty respawns, autologin starts X again. `tekne-startx.sh` stops using `exec`. If the session ends within 15 seconds, whatever `startx` returns, it leaves a marker for the rest of the boot and stays on a console shell. tty2–6 keep normal logins.
@@ -527,6 +527,10 @@ so it most likely waits for Freia to become stable. The options:
 - **S3, the battery's wakeup:** tested by hand and ruled out: turning it off doesn't stop the remaining ~20-minute wake, which becomes a known limitation (DEC-046).
 - **S4, the 2026-10-10 hangs:** if none recurs by 2026-10-23, 0.3 is released with them listed as under investigation. The laptop keeps its debugging setup (persistent kernel log, SysRq on Fn+F4) until then.
 
+**After 0.3-rc2's first night (2026-10-18):** XLibre aborted while giving up the seat for a suspend, tty1's autologin started a new, unlocked X in the middle of the suspend, and the second time the kernel's switch to its suspend console waited forever for that X, so the laptop stayed awake until its battery died (DEC-042 History). The maintainer turned autologin off on the laptop until it's fixed.
+- **T1, autologin once per boot:** only the first tty1 login of a boot is automatic; later ones ask for the password (DEC-042). Logging out now returns to a login prompt.
+- **T2, X's error output:** `tekne-startx.sh` keeps `startx`'s output in `~/.local/state/tekne/startx.log`, so an XLibre abort leaves its reason for an upstream report.
+
 ### 9.7 Phases and acceptance criteria
 Phase numbers continue from §8.
 
@@ -578,6 +582,9 @@ Phase numbers continue from §8.
 - ✅ `v0.3-rc2` is released and published to `excalibur-rc`, and `release.py` passes on it. Released on 2026-10-18 from `20a7cae` (CI run 39080082823; publish run 39084278333); `excalibur-rc` serves all six packages at `0.3~rc2`. On the way, master's CI found a flaky test, fixed in `20a7cae`: init's "INIT: " console message after `tekne-autologin`'s `telinit q` could prefix a result line on the serial console.
 - ✅ (maintainer) On the laptop with 0.3-rc2, a night with the lid closed on battery has no 30-second wakes, and the kernel log shows the hook turning off the AC adapter's wakeup.
 - ✅ No hard hang recurs on the laptop by 2026-10-23 (S4), or one that does is explained by its kernel log.
+- For 0.3-rc3: `tekne-autologin-getty` and the matching `tekne-autologin` (T1), and `startx.log` (T2), with DEC-042 and the docs.
+- ✅ `install.py`'s LUKS cases check that the boot's automatic login was used once and that `startx.log` exists. Its broken-X step checks that logging tty1 out brings a password prompt, not another automatic login.
+- ✅ (maintainer) On the laptop with 0.3-rc3 and `tekne-autologin on`, logging out of the desktop returns to a password prompt, and a night with the lid closed on battery ends with the session intact.
 - ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.
 
 ## 10. Notes for coding-agent sessions

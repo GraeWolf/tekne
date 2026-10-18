@@ -13,6 +13,10 @@ echo "LIVE_FILES=$(ls /usr/lib/live/config/0161-tekne-autologin /usr/local/sbin/
 # tty1-6 must never reach an installed system.
 echo "AUTOLOGIN=$(tekne-autologin status)"
 echo "AUTOLOGIN_OTHER_TTYS=$(grep -v '[[:space:]]tty1[[:space:]]*$' /etc/inittab | grep -c -- '--autologin')"
+# Autologin is for a boot's first login only: tekne-autologin-getty leaves a
+# marker in /run when it uses it. Its X session's output goes to startx.log.
+echo "AUTOLOGIN_ONCE=$([ -d /run/tekne-autologin ] && echo used || echo unused)"
+echo "STARTX_LOG=$([ -s /home/tester/.local/state/tekne/startx.log ] && echo present || echo none)"
 
 echo "ROOT_FS=$(findmnt -no FSTYPE /)"
 echo "BOOT_FS=$(findmnt -no FSTYPE /boot)"

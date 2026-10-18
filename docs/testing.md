@@ -111,7 +111,8 @@ suspend:
    login prompt.
 3. **Keyring:** the first app that needs a secret (Brave, for example) asks for
    your password once. After that, nothing asks again until the next boot.
-4. **Logout:** the power menu's logout brings the desktop straight back.
+4. **Logout:** the power menu's logout returns tty1 to a password prompt. Only
+   the first login of a boot is automatic.
 
 ### Sleeping with the lid closed
 

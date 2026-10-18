@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+Fixes from 0.3-rc2's first night on the development laptop.
+
+### Fixed
+- **Autologin could leave an unlocked desktop and keep the laptop awake.** When
+  X crashed as the laptop suspended (an XLibre bug, rare), tty1's autologin
+  started a new X at once: unlocked, and in the middle of the suspend. Once,
+  the suspend then never finished, and the battery ran flat with the lid
+  closed. Now only the first login of each boot is automatic; after a logout or
+  a crash, tty1 asks for the password (DEC-042). **If you turned autologin on
+  with 0.3-rc1 or rc2, run `sudo tekne-autologin on` again**: `tekne-autologin
+  status` shows whether you need to.
+
+### Changed
+- Logging out of the desktop with autologin on returns to a password prompt,
+  instead of logging straight back in.
+- X's own error messages are kept in `~/.local/state/tekne/startx.log`.
+
+**Known limitations** (added to 0.3-rc2's):
+- XLibre occasionally aborts when the laptop suspends (seen twice in one night
+  on the development laptop). The session is lost; tty1 then asks for the
+  password. `startx.log` holds the reason for an upstream report.
+
 ## 0.3-rc2 (2026-10-17)
 
 Fixes from dogfooding 0.3-rc1 on the development laptop.

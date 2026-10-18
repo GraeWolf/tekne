@@ -19,4 +19,5 @@ override_dh_installinit:
 execute_after_dh_fixperms:
 	chmod 0755 debian/tekne-config/usr/bin/* \
 		debian/tekne-config/usr/share/tekne/herbstluftwm/autostart \
-		debian/tekne-config/usr/libexec/system-sleep/*
+		debian/tekne-config/usr/libexec/system-sleep/* \
+		debian/tekne-config/usr/libexec/tekne/*

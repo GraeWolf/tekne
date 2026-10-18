@@ -1,0 +1,16 @@
+#!/bin/sh
+# tty1's getty with autologin (DEC-042), run from /etc/inittab by
+# tekne-autologin:
+#   tekne-autologin-getty USER [GETTY OPTIONS] BAUD tty1
+# Only the first login of each boot is automatic. After that, whether the
+# user logged out or X crashed, tty1 asks for the password: a crashed X
+# can't come back as an unlocked desktop, and can't start again in the
+# middle of a suspend (the kernel's switch to its suspend console would wait
+# for it forever). The marker is in /run, which every boot clears and
+# hibernation keeps.
+user="$1"
+shift
+if mkdir /run/tekne-autologin 2>/dev/null; then
+	exec /sbin/getty --autologin "${user}" "$@"
+fi
+exec /sbin/getty "$@"

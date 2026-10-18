@@ -21,8 +21,10 @@ out/tekne-*-amd64.iso (SPEC.md §5.2, docs/installer.md §6). For each case:
      the same shell session still has the token. A cold boot would lose both.
      In the LUKS cases, X is running on tty1 while it hibernates.
   4. uefi-luks only: break X on purpose (a missing driver) and reboot. tty1
-     must try X at most twice, then stay on a console shell, and logging that
-     shell out mustn't start X again. tty2 must still offer a normal login.
+     must try X at most twice, then stay on a console shell. Logging that
+     shell out must bring a password prompt, not another automatic login
+     (autologin is for a boot's first login only), and tty2 must still offer
+     a normal login.
   5. Compare the results with what the answers file asked for.
 
 Everything runs in virtual machines; nothing touches the host's disks. Work
@@ -78,8 +80,9 @@ def expected(mode, luks, upgraded=False, autologin=False):
     # DEC-042. The login keyring must exist before the boot's password login:
     # the installer made it (or, after an upgrade, the system's earlier use did).
     auto = ({"TTY1_X": "running", "SEAT_LOG": "logind", "LOCK_SCREEN": "asks for the password",
-             "KEYRING_CREATED": "before-boot"} if autologin
-            else {"TTY1_X": "none", "SEAT_LOG": "none"})
+             "KEYRING_CREATED": "before-boot", "AUTOLOGIN_ONCE": "used", "STARTX_LOG": "present"}
+            if autologin
+            else {"TTY1_X": "none", "SEAT_LOG": "none", "AUTOLOGIN_ONCE": "unused", "STARTX_LOG": "none"})
     return per_user | auto | {
         "PID1": "init", "RUN_SYSTEMD": "absent", "SYSTEMD_PKGS": "0",
         "LIVE_PKGS": "0", "LIVE_FILES": "0",
@@ -278,8 +281,9 @@ EOF
 echo BROKEN_X=set
 """
 
-# After a reboot with X broken: tty1 gave up on X, logging it out doesn't
-# start X again, and tty2 still offers a normal login (DEC-042).
+# After a reboot with X broken: tty1 gave up on X, logging it out brings a
+# password prompt rather than another automatic login (so no X either), and
+# tty2 still offers a normal login (DEC-042).
 BROKEN_X_CHECK = r"""
 set -u
 boot="$(cat /proc/sys/kernel/random/boot_id)"
@@ -290,17 +294,18 @@ sleep 5
 echo "X_STARTS=$(cat /home/tester/.xstarts 2>/dev/null | wc -l)"
 shell="$(pgrep -u tester -t tty1 -x bash | head -n 1)"
 echo "TTY1=$([ -n "${shell}" ] && ! pgrep -u tester -x Xorg >/dev/null && echo console || echo other)"
-# Log tty1 out: getty respawns, autologin logs in again, and the marker must
-# keep X from starting.
+# Log tty1 out: getty respawns and, the boot's automatic login being used,
+# must ask for the password.
 [ -n "${shell}" ] && kill -KILL "${shell}"
-new=""
 for i in $(seq 30); do
-	new="$(pgrep -u tester -t tty1 -x bash | head -n 1)"
-	[ -n "${new}" ] && [ "${new}" != "${shell}" ] && break
+	ps -o args= -t tty1 | grep -q '^/sbin/getty' && break
 	sleep 1
 done
 sleep 10
-echo "RELOGIN=$([ -n "${new}" ] && [ "${new}" != "${shell}" ] && echo yes || echo no)"
+if pgrep -u tester -t tty1 -x bash >/dev/null; then echo "RELOGIN=automatic"
+elif ps -o args= -t tty1 | grep '^/sbin/getty' | grep -qv -- --autologin; then echo "RELOGIN=password-prompt"
+else echo "RELOGIN=none"
+fi
 echo "X_STARTS_AFTER=$(cat /home/tester/.xstarts 2>/dev/null | wc -l)"
 echo "TTY2=$(ps -o args= -t tty2 | grep getty | grep -qv -- --autologin && echo login || echo other)"
 """
@@ -341,7 +346,7 @@ def broken_x(mode, disk, vars_path, workdir):
     starts = results.get("X_STARTS", "")
     if not starts.isdigit() or not 1 <= int(starts) <= 2:
         problems.append(f"broken X: tty1 started X {starts!r} times, want 1 or 2")
-    for key, want in [("MARKER", "this-boot"), ("TTY1", "console"), ("RELOGIN", "yes"),
+    for key, want in [("MARKER", "this-boot"), ("TTY1", "console"), ("RELOGIN", "password-prompt"),
                       ("X_STARTS_AFTER", starts), ("TTY2", "login")]:
         if results.get(key) != want:
             problems.append(f"broken X: {key}: got {results.get(key)!r}, want {want!r}")

@@ -7,6 +7,10 @@
 # success when the session client fails), this stays on a console shell and
 # leaves a marker holding the boot ID, so tty1 doesn't start X again until the
 # next boot. tty2-6 keep normal logins.
+#
+# startx's output, which holds X's own error messages (an abort's reason
+# among them), goes to ~/.local/state/tekne/startx.log; the previous one is
+# kept as startx.log.old.
 if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = /dev/tty1 ] \
 	&& [ ! -e "${XDG_CONFIG_HOME:-$HOME/.config}/tekne/no-startx" ] \
 	&& command -v startx >/dev/null 2>&1; then
@@ -16,21 +20,28 @@ if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = /dev/tty1 ] \
 	_tekne_marker="${XDG_CACHE_HOME:-$HOME/.cache}/tekne/startx-failed"
 	_tekne_boot="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)"
 	if [ -n "${_tekne_boot}" ] && [ "$(cat "${_tekne_marker}" 2>/dev/null)" = "${_tekne_boot}" ]; then
-		echo "tekne: X failed earlier in this boot, so it isn't started again. Log:"
-		echo "  ~/.local/state/xorg/Xorg.0.log"
+		echo "tekne: X failed earlier in this boot, so it isn't started again. Logs:"
+		echo "  ~/.local/state/xorg/Xorg.0.log and ~/.local/state/tekne/startx.log"
 		echo "To try again: rm ${_tekne_marker} && startx"
 	else
+		_tekne_log="${XDG_STATE_HOME:-$HOME/.local/state}/tekne/startx.log"
+		mkdir -p "${_tekne_log%/*}" 2>/dev/null
+		if [ -w "${_tekne_log%/*}" ]; then
+			[ ! -e "${_tekne_log}" ] || mv -f "${_tekne_log}" "${_tekne_log}.old"
+		else
+			_tekne_log=/dev/null
+		fi
 		_tekne_start="$(date +%s)"
-		startx
+		startx >"${_tekne_log}" 2>&1
 		_tekne_status=$?
 		if [ $(( $(date +%s) - _tekne_start )) -ge 15 ]; then
 			exit "${_tekne_status}"
 		fi
 		mkdir -p "${_tekne_marker%/*}" && echo "${_tekne_boot}" > "${_tekne_marker}"
 		echo "tekne: X exited after less than 15 seconds (status ${_tekne_status})."
-		echo "tty1 stays on this console until the next boot. X's log:"
-		echo "  ~/.local/state/xorg/Xorg.0.log"
+		echo "tty1 stays on this console until the next boot. Logs:"
+		echo "  ~/.local/state/xorg/Xorg.0.log and ${_tekne_log}"
 		echo "To try again: rm ${_tekne_marker} && startx"
 	fi
-	unset _tekne_marker _tekne_boot _tekne_start _tekne_status
+	unset _tekne_marker _tekne_boot _tekne_log _tekne_start _tekne_status
 fi

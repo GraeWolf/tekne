@@ -1,7 +1,8 @@
 #!/bin/sh
 # Log a user in automatically on tty1 after the LUKS passphrase (DEC-042), so
-# one passphrase reaches the desktop. tty2-6, sudo and the lock screen still
-# ask for the password.
+# one passphrase reaches the desktop. Only the first login of each boot is
+# automatic: after a logout or an X crash, tty1 asks for the password. tty2-6,
+# sudo and the lock screen always ask for it.
 #   sudo tekne-autologin on [USER]   (USER defaults to the one running sudo)
 #   sudo tekne-autologin off
 #   tekne-autologin status
@@ -11,20 +12,27 @@
 set -eu
 
 INITTAB=/etc/inittab
-# tty1's getty line: "1:2345:respawn:/sbin/getty [OPTIONS] 38400 tty1".
-TTY1='^[^#:][^:]*:[^:]*:[^:]*:/sbin/getty .*[[:space:]]tty1[[:space:]]*$'
+WRAPPER=/usr/libexec/tekne/tekne-autologin-getty
+# tty1's getty line: "1:2345:respawn:/sbin/getty [OPTIONS] 38400 tty1", or the
+# same run through ${WRAPPER} USER.
+TTY1="^[^#:][^:]*:[^:]*:[^:]*:(/sbin/getty|${WRAPPER} [^[:space:]]+) .*[[:space:]]tty1[[:space:]]*$"
 
 die() { echo "tekne-autologin: $*" >&2; exit 1; }
 usage() { die "usage: sudo tekne-autologin on [USER] | off | status"; }
 
 tty1_line() {
-	[ "$(grep -c -- "${TTY1}" "${INITTAB}")" = 1 ] \
-		|| die "${INITTAB} doesn't have exactly one /sbin/getty line for tty1"
-	grep -- "${TTY1}" "${INITTAB}"
+	[ "$(grep -E -c -- "${TTY1}" "${INITTAB}")" = 1 ] \
+		|| die "${INITTAB} doesn't have exactly one getty line for tty1"
+	grep -E -- "${TTY1}" "${INITTAB}"
 }
 
 current_user() {
-	tty1_line | sed -n 's/.*[[:space:]]--autologin[[:space:]]\{1,\}\([^[:space:]]*\).*/\1/p'
+	tty1_line | sed -n -E "s|.*:${WRAPPER} ([^[:space:]]+) .*|\\1|p"
+}
+
+# Autologin as 0.3-rc1 and rc2 set it: getty's own --autologin, on every login.
+legacy_user() {
+	tty1_line | sed -n -E 's/.*[[:space:]]--autologin[[:space:]]+([^[:space:]]+).*/\1/p'
 }
 
 root_encrypted() {
@@ -32,14 +40,16 @@ root_encrypted() {
 	lsblk -nso TYPE "${src}" 2>/dev/null | grep -qx crypt
 }
 
-# Rewrite tty1's line: drop any --autologin, then add "--autologin USER" if given.
+# Rewrite tty1's line as plain getty, then run it through the wrapper for USER
+# if one is given.
 write_tty1() {
 	tmp="$(mktemp "${INITTAB}.XXXXXX")"
 	trap 'rm -f "${tmp}"' EXIT
 	add=""
-	[ -z "$1" ] || add="s|/sbin/getty |/sbin/getty --autologin $1 |"
-	sed -e "\\|${TTY1}|{" \
-		-e 's/[[:space:]]--autologin[[:space:]]\{1,\}[^[:space:]]*//' \
+	[ -z "$1" ] || add="s|:/sbin/getty |:${WRAPPER} $1 |"
+	sed -E -e "\\%${TTY1}%{" \
+		-e "s|:${WRAPPER} [^[:space:]]+ |:/sbin/getty |" \
+		-e 's/[[:space:]]--autologin[[:space:]]+[^[:space:]]+//' \
 		-e "${add}" \
 		-e '}' "${INITTAB}" > "${tmp}"
 	chmod 644 "${tmp}"
@@ -56,7 +66,14 @@ case "${cmd}" in
 		[ $# -eq 1 ] || usage
 		tty1_line >/dev/null
 		user="$(current_user)"
-		if [ -n "${user}" ]; then echo "on ${user}"; else echo off; fi
+		legacy="$(legacy_user)"
+		if [ -n "${user}" ]; then
+			echo "on ${user}"
+		elif [ -n "${legacy}" ]; then
+			echo "on ${legacy}, at every login (from 0.3-rc1 or rc2): run 'sudo tekne-autologin on' to make it the first login only"
+		else
+			echo off
+		fi
 		exit 0
 		;;
 	on)  [ $# -le 2 ] || usage ;;
@@ -73,6 +90,7 @@ if [ "${cmd}" = off ]; then
 fi
 
 root_encrypted || die "/ isn't on an encrypted device, so autologin would let anyone who powers the machine on into the desktop"
+[ -x "${WRAPPER}" ] || die "${WRAPPER} is missing; reinstall tekne-config"
 user="${2:-${SUDO_USER:-}}"
 [ -n "${user}" ] || die "name the user: sudo tekne-autologin on USER"
 entry="$(getent passwd "${user}")" || die "no such user: ${user}"
@@ -80,4 +98,5 @@ uid="$(echo "${entry}" | cut -d: -f3)"
 [ "${uid}" -ge 1000 ] && [ "${uid}" -lt 60000 ] || die "${user} isn't a regular user account"
 write_tty1 "${user}"
 echo "Autologin is on for ${user}: from the next boot, the LUKS passphrase is the only one"
-echo "needed to reach the desktop. The lock screen, sudo and tty2-6 still ask for the password."
+echo "needed to reach the desktop. Later logins in the same boot, the lock screen, sudo and"
+echo "tty2-6 still ask for the password."
