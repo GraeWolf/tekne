@@ -573,7 +573,7 @@ Phase numbers continue from §8.
 - ✅ `v0.3-rc1` is released through CI (DEC-039) and published to `excalibur-rc`. The laptop upgrades to it with `apt upgrade` and is dogfooded. Done 2026-10-06.
 - For 0.3-rc2: `tekne-config`'s `tekne-no-ac-wake` sleep hook (DEC-046) and `upower` in `tekne-desktop` (DEC-017), with docs/desktop-stack.md, docs/testing.md and the CHANGELOG.
 - ✅ On each installed system, `install.py` checks that the hook is installed and does nothing in QEMU (no AC adapter), and that `upower --dump` reports `critical-action: HybridSleep`, which also shows UPower starts through D-Bus without systemd.
-- ✅ `v0.3-rc2` is released and published to `excalibur-rc`, and `release.py` passes on it.
+- ✅ `v0.3-rc2` is released and published to `excalibur-rc`, and `release.py` passes on it. Released on 2026-10-18 from `20a7cae` (CI run 39080082823; publish run 39084278333); `excalibur-rc` serves all six packages at `0.3~rc2`. On the way, master's CI found a flaky test, fixed in `20a7cae`: init's "INIT: " console message after `tekne-autologin`'s `telinit q` could prefix a result line on the serial console.
 - ✅ (maintainer) On the laptop with 0.3-rc2, a night with the lid closed on battery has no 30-second wakes, and the kernel log shows the hook turning off the AC adapter's wakeup.
 - ✅ No hard hang recurs on the laptop by 2026-10-23 (S4), or one that does is explained by its kernel log.
 - ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.
