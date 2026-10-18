@@ -46,7 +46,7 @@ jobs:
           sudo docker image prune --all --force
           df -h /
 
-      # Actions are pinned by commit (CLAUDE.md: pin every external input).
+      # Actions are pinned by commit (AGENTS.md: pin every external input).
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

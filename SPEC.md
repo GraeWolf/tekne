@@ -169,6 +169,8 @@ reproducibility is a possible later goal.
 ```
 tekne/
 ├── README.md
+├── AGENTS.md                      # instructions for coding agents
+├── CLAUDE.md                      # imports AGENTS.md for Claude Code
 ├── VERSION                        # base version, e.g. 0.1
 ├── LICENSE                        # GPL-3.0-or-later
 ├── SPEC.md
@@ -578,7 +580,8 @@ Phase numbers continue from §8.
 - ✅ No hard hang recurs on the laptop by 2026-10-23 (S4), or one that does is explained by its kernel log.
 - ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.
 
-## 10. Notes for Claude Code sessions
+## 10. Notes for coding-agent sessions
+The full working rules are in [AGENTS.md](AGENTS.md). In short:
 - Keep SPEC.md and DECISIONS.md current. When a decision's status or content changes, update DECISIONS.md (with a dated History line) and every doc that references its `DEC-nnn` ID in the same commit.
 - Before adding any package, check that it exists in Excalibur and run the no-systemd check. Package names and systemd-free substitutes change between releases.
 - Never download build inputs without pinning them (a checksum or container digest).
