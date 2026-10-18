@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3-rc3 (2026-10-18)
 
 Fixes from 0.3-rc2's first night on the development laptop.
 
