@@ -87,13 +87,15 @@ CONSOLE_CHECK_CMD = (
     f'sleep {CONSOLE_NO_X_SECS}; '
     'pgrep -x Xorg >/dev/null && echo XORG=running || echo XORG=absent; '
     '[ -e ~/.config/tekne/no-startx ] && echo NO_STARTX=yes || echo NO_STARTX=no; '
+    # live-config's xinit component (disabled by nocomponents=xinit) would loop startx.
+    '[ -e /etc/profile.d/zz-live-config_xinit.sh ] && echo XINIT_LOOP=present || echo XINIT_LOOP=absent; '
     'grep -q "sudo tekne-install" /etc/motd && echo MOTD_HINT=yes || echo MOTD_HINT=no; '
     'sudo -n test -x /usr/sbin/tekne-install && echo INSTALLER=yes || echo INSTALLER=no; '
     'echo __TEKNE""_END__\n'
 )
 CONSOLE_EXPECTED = {
     "CMDLINE_CONSOLE": "yes", "NOMODESET": "yes", "TTY1_SHELL": "up", "XORG": "absent",
-    "NO_STARTX": "yes", "MOTD_HINT": "yes", "INSTALLER": "yes",
+    "NO_STARTX": "yes", "XINIT_LOOP": "absent", "MOTD_HINT": "yes", "INSTALLER": "yes",
 }
 
 

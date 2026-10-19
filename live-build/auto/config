@@ -5,6 +5,10 @@ set -e
 DEVUAN="http://deb.devuan.org/merged/"
 # The Tokyo Night console palette and loglevel=3, as on installed systems
 # (tekne-branding: /etc/default/grub.d/tekne-console.cfg, DEC-037).
+# nocomponents=xinit runs every live-config component but 0140-xinit: its
+# /etc/profile.d snippet runs startx on tty1 in an endless loop after
+# tekne-startx.sh, which defeated tekne.console and DEC-042's guard against a
+# broken X restarting forever. tekne-startx.sh starts the live desktop alone.
 CONSOLE="loglevel=3 vt.default_red=26,247,158,224,122,187,125,169,65,247,158,224,122,187,125,192 vt.default_grn=27,118,206,175,162,154,207,177,72,118,206,175,162,154,207,202 vt.default_blu=38,142,106,104,247,247,255,214,104,142,106,104,247,247,255,245"
 
 lb config noauto \
@@ -31,7 +35,7 @@ lb config noauto \
 	--binary-images iso-hybrid \
 	--bootloaders "grub-pc grub-efi" \
 	--uefi-secure-boot disable \
-	--bootappend-live "boot=live components quiet ${CONSOLE}" \
+	--bootappend-live "boot=live nocomponents=xinit quiet ${CONSOLE}" \
 	--debian-installer none \
 	--memtest none \
 	--firmware-chroot false \

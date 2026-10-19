@@ -72,6 +72,9 @@ Debian's standard `startx` → `Xsession` path, so a user's own `~/.xinitrc` or
    `--autologin` to the tty1–6 gettys. live-config's own `0160-sysvinit` component never
    works on Excalibur: it checks for a package named `sysvinit`, which no longer exists,
    and its `sh -c "/bin/login -f"` inittab line leaves `login` stopped by job control.
+   live-config's `0140-xinit` is turned off (`nocomponents=xinit` in the live boot
+   options): its `/etc/profile.d/zz-live-config_xinit.sh` would run `startx` on tty1
+   in an endless loop after `tekne-startx.sh`, bypassing the guard above.
    With `tekne.console` on the kernel command line (GRUB's "Tekne live (console, no
    desktop)" entry), the live component `0162-tekne-console` creates the live user's
    `~/.config/tekne/no-startx`, so tty1 stays on a console, and puts the installer's
