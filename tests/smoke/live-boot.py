@@ -147,7 +147,12 @@ def pick_console_entry(con):
     for key in "\x0e\x0e\x05":
         con.send(key)
         time.sleep(0.3)
-    con.send(" console=tty0 console=ttyS0,115200n8 tekne.serial")
+    # One key at a time: UEFI GRUB redraws the line after each one, and on a
+    # slow runner it fell behind a single write, so the serial port dropped
+    # the end ("tekne.se").
+    for key in " console=tty0 console=ttyS0,115200n8 tekne.serial":
+        con.send(key)
+        time.sleep(0.1)
     time.sleep(0.5)
     con.send("\x18")
 
