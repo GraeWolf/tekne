@@ -10,8 +10,14 @@ sysvinit's init and /run/systemd/system doesn't exist. It then waits for the
 autologin desktop on tty1 and checks that the X server and every session
 component in DESKTOP_PROCESSES is running (Phase 2), that Tekne's firewall is
 loaded, that nothing listens beyond loopback (DEC-023), and that X took its
-seat from elogind (DEC-045). Serial logs are
-written to out/serial-<mode>.log. Exits non-zero if any mode fails.
+seat from elogind (DEC-045).
+
+It then boots the "console, no desktop" entry (tekne.console), which it
+reaches with GRUB's menu keys and edits to add the serial console, and checks
+that tty1's autologin stays on a console, with no X, and that the login
+message points to the installer. Serial logs are written to
+out/serial-<mode>.log and out/serial-<mode>-console.log. Exits non-zero if
+any check fails.
 """
 import os
 import sys
@@ -62,34 +68,97 @@ CHECK_CMD = (
     'echo __TEKNE""_END__\n'
 )
 
+# The "console, no desktop" entry (tekne.console): its title, and its place in
+# the GRUB menu, counting from 0.
+CONSOLE_ENTRY_TITLE = "Tekne live (console, no desktop)"
+CONSOLE_ENTRY_INDEX = 2
+CONSOLE_TTY1_TIMEOUT = 60
+# How long tty1's autologin shell runs with no X before the check passes;
+# startx would have started X within a few seconds.
+CONSOLE_NO_X_SECS = 15
 
-def run(mode, iso):
-    log_path = os.path.join(OUT, f"serial-{mode}.log")
+CONSOLE_CHECK_CMD = (
+    'echo __TEKNE""_BEGIN__; '
+    'grep -qw tekne.console /proc/cmdline && echo CMDLINE_CONSOLE=yes || echo CMDLINE_CONSOLE=no; '
+    'grep -qw nomodeset /proc/cmdline && echo NOMODESET=yes || echo NOMODESET=no; '
+    # tty1's autologin shell, which would otherwise start X.
+    f'i=0; while [ $i -lt {CONSOLE_TTY1_TIMEOUT} ] && ! pgrep -t tty1 -x bash >/dev/null; do sleep 1; i=$((i+1)); done; '
+    'pgrep -t tty1 -x bash >/dev/null && echo TTY1_SHELL=up || echo TTY1_SHELL=down; '
+    f'sleep {CONSOLE_NO_X_SECS}; '
+    'pgrep -x Xorg >/dev/null && echo XORG=running || echo XORG=absent; '
+    '[ -e ~/.config/tekne/no-startx ] && echo NO_STARTX=yes || echo NO_STARTX=no; '
+    'grep -q "sudo tekne-install" /etc/motd && echo MOTD_HINT=yes || echo MOTD_HINT=no; '
+    'sudo -n test -x /usr/sbin/tekne-install && echo INSTALLER=yes || echo INSTALLER=no; '
+    'echo __TEKNE""_END__\n'
+)
+CONSOLE_EXPECTED = {
+    "CMDLINE_CONSOLE": "yes", "NOMODESET": "yes", "TTY1_SHELL": "up", "XORG": "absent",
+    "NO_STARTX": "yes", "MOTD_HINT": "yes", "INSTALLER": "yes",
+}
+
+
+def boot_and_check(mode, iso, log_path, pick_entry, check_cmd, check_timeout):
+    """Boot the ISO, pick a GRUB entry with pick_entry(con), log in over
+    serial, and run check_cmd. Returns (seconds to the login prompt, the
+    command's output), or None after printing the failure."""
     with tempfile.TemporaryDirectory() as tmp, open(log_path, "w") as log:
         vars_path = uefi_vars(os.path.join(tmp, "OVMF_VARS.fd")) if mode == "uefi" else None
         proc = start(qemu_command(mode, vars_path) + ["-cdrom", iso, "-boot", "d"])
         con = Serial(proc, log)
         started = time.monotonic()
         try:
+            # The serial entry is the menu's last, so the whole menu is drawn.
             con.expect(SERIAL_ENTRY_TITLE, MENU_TIMEOUT)
-            con.send(SERIAL_ENTRY_HOTKEY)
+            pick_entry(con)
             con.expect("login:", BOOT_TIMEOUT)
             boot_secs = time.monotonic() - started
             con.send(LIVE_USER + "\n")
             con.expect("assword:", CMD_TIMEOUT)
             con.send(LIVE_PASSWORD + "\n")
             con.expect("$ ", CMD_TIMEOUT)
-            con.send(CHECK_CMD)
+            con.send(check_cmd)
             con.expect(BEGIN, CMD_TIMEOUT)
-            output = con.expect(END, DESKTOP_TIMEOUT + CMD_TIMEOUT)
+            output = con.expect(END, check_timeout)
             con.send("sudo poweroff\n")
             stop(proc, CMD_TIMEOUT)
         except (TimeoutError, RuntimeError) as err:
             print(f"FAIL [{mode}]: {err}. Serial log: {log_path}")
-            return False
+            return None
         finally:
             if proc.poll() is None:
                 proc.kill()
+    return boot_secs, output
+
+
+def pick_serial_entry(con):
+    con.send(SERIAL_ENTRY_HOTKEY)
+
+
+def pick_console_entry(con):
+    """Open the console entry in GRUB's editor and add the serial console to
+    its linux line: Ctrl+N moves down (the menu, then the editor's lines:
+    "setparams", the empty line after the entry's "{", then linux), Ctrl+E
+    goes to the end of the line, and Ctrl+X boots. A hotkey would boot the
+    entry before it can be edited."""
+    for key in "\x0e" * CONSOLE_ENTRY_INDEX + "e":
+        con.send(key)
+        time.sleep(0.3)
+    con.expect(f"setparams '{CONSOLE_ENTRY_TITLE}'", CMD_TIMEOUT)
+    for key in "\x0e\x0e\x05":
+        con.send(key)
+        time.sleep(0.3)
+    con.send(" console=tty0 console=ttyS0,115200n8 tekne.serial")
+    time.sleep(0.5)
+    con.send("\x18")
+
+
+def run(mode, iso):
+    log_path = os.path.join(OUT, f"serial-{mode}.log")
+    result = boot_and_check(mode, iso, log_path, pick_serial_entry, CHECK_CMD,
+                            DESKTOP_TIMEOUT + CMD_TIMEOUT)
+    if result is None:
+        return False
+    boot_secs, output = result
 
     lines = [line.strip() for line in output.splitlines()]
     results = parse_results(output, skip=("PKG", "LISTEN"))
@@ -117,6 +186,20 @@ def run(mode, iso):
     return ok
 
 
+def run_console(mode, iso):
+    log_path = os.path.join(OUT, f"serial-{mode}-console.log")
+    result = boot_and_check(mode, iso, log_path, pick_console_entry, CONSOLE_CHECK_CMD,
+                            CONSOLE_TTY1_TIMEOUT + CONSOLE_NO_X_SECS + CMD_TIMEOUT)
+    if result is None:
+        return False
+    results = parse_results(result[1])
+    for key in CONSOLE_EXPECTED:
+        print(f"[{mode} console] {key}: {results.get(key)}")
+    ok = all(results.get(key) == value for key, value in CONSOLE_EXPECTED.items())
+    print(f"{'PASS' if ok else 'FAIL'} [{mode} console] (serial log: {log_path})")
+    return ok
+
+
 def main():
     args = sys.argv[1:]
     mode = args.pop(0) if args and args[0] in ("bios", "uefi", "all") else "all"
@@ -130,7 +213,7 @@ def main():
 
     print(f"Testing {iso}")
     modes = ["bios", "uefi"] if mode == "all" else [mode]
-    results = [run(m, iso) for m in modes]
+    results = [check(m, iso) for m in modes for check in (run, run_console)]
     return 0 if all(results) else 1
 
 

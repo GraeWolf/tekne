@@ -1,0 +1,63 @@
+#!/bin/sh
+# Live session only: with tekne.console on the kernel command line (GRUB's
+# "Tekne live (console, no desktop)" entry), tty1 stays on a console instead
+# of starting the desktop, for machines where X doesn't come up. The live
+# user's ~/.config/tekne/no-startx is what /etc/profile.d/tekne-startx.sh
+# checks, and /etc/motd tells the user how to install from there.
+# tekne-install removes this file from installed systems.
+
+. /lib/live/config.sh
+
+Cmdline ()
+{
+	_TEKNE_CONSOLE=""
+	for _PARAMETER in ${LIVE_CONFIG_CMDLINE}
+	do
+		case "${_PARAMETER}" in
+			tekne.console)
+				_TEKNE_CONSOLE=yes
+				;;
+			live-config.username=*|username=*)
+				LIVE_USERNAME="${_PARAMETER#*username=}"
+				;;
+		esac
+	done
+	[ -n "${_TEKNE_CONSOLE}" ] || exit 0
+}
+
+Init ()
+{
+	if component_was_executed "tekne-console"
+	then
+		exit 0
+	fi
+	echo -n " tekne-console"
+}
+
+Config ()
+{
+	_USER="${LIVE_USERNAME:-user}"
+	_HOME="$(getent passwd "${_USER}" | cut -d: -f6)"
+	if [ -n "${_HOME}" ] && [ -d "${_HOME}" ]
+	then
+		mkdir -p "${_HOME}/.config/tekne"
+		touch "${_HOME}/.config/tekne/no-startx"
+		chown -R "${_USER}:" "${_HOME}/.config"
+	fi
+
+	{
+		echo
+		echo "Tekne console mode (tekne.console): the desktop isn't started."
+		echo "  Install Tekne:          sudo tekne-install"
+		echo "  Try the desktop anyway: startx"
+		echo
+		cat /etc/motd 2>/dev/null
+	} > /etc/motd.tekne
+	mv /etc/motd.tekne /etc/motd
+
+	touch /var/lib/live/config/tekne-console
+}
+
+Cmdline
+Init
+Config

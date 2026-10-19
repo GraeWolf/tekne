@@ -19,6 +19,13 @@ Implementation: `/usr/sbin/tekne-install`, a bash script using `gum` for all
 prompts, packaged as `tekne-installer` (live image only). The interactive and
 unattended paths share every validation and install step.
 
+It runs in a terminal, so it doesn't need the live desktop: run `sudo
+tekne-install` from the desktop's terminal or from any tty. Where the desktop
+doesn't start (for example an NVIDIA-only desktop on `nouveau`), boot GRUB's
+"Tekne live (console, no desktop)" entry. It adds `nomodeset` and
+`tekne.console`, and the live-config component `0162-tekne-console` then keeps
+tty1 on a console, with the command in the login message.
+
 ## 2. Flow
 
 1. **Preflight**
@@ -42,7 +49,7 @@ unattended paths share every validation and install step.
     - Hostname, `/etc/hosts`, timezone, locale, and keyboard (`/etc/default/keyboard`)
     - Create the user, lock root, and create the user's XDG directories (`xdg-user-dirs-update`, named for the chosen locale)
     - With autologin: run the target's `tekne-autologin on USER` (from `tekne-config`, the same command existing installs use), which runs tty1's getty through `tekne-autologin-getty USER`: an automatic login once per boot. Then create the user's `login` keyring from their password (DEC-030): PAM never sees a password under autologin, so nothing else would. `gnome-keyring-daemon --unlock` runs as the user with the password on stdin, under a private runtime directory in the target's `/run`.
-    - Purge the live packages (`live-boot*`, `live-config*`, `live-tools`) and `tekne-installer`. Remove Tekne's live-only files (`0161-tekne-autologin`, `tekne-serial-getty`), and restore `/etc/inittab` from `/usr/share/sysvinit/inittab`, which drops the live image's serial test getty.
+    - Purge the live packages (`live-boot*`, `live-config*`, `live-tools`) and `tekne-installer`. Remove Tekne's live-only files (`0161-tekne-autologin`, `0162-tekne-console`, `tekne-serial-getty`), and restore `/etc/inittab` from `/usr/share/sysvinit/inittab`, which drops the live image's serial test getty.
     - Create the swapfile (DEC-017): `/swapfile`, size = RAM rounded up to the next GiB, mode 0600, created with `mkswap --file` so it has no holes
     - Configure resume: `resume=UUID=<root fs UUID> resume_offset=<offset>` go on the kernel command line (`GRUB_CMDLINE_LINUX`), because initramfs-tools reads `resume_offset` only from there. The offset is the first physical extent from `filefrag -v /swapfile`. `/etc/initramfs-tools/conf.d/resume` gets `RESUME=UUID=…`, which makes sure the resume hook is in the initramfs.
     - Install `grub-pc` (BIOS) or `grub-efi-amd64` (UEFI) offline from `.deb`s the build downloads into `/usr/share/tekne-installer/debs/`. The two conflict, so neither can be in the live image; their `-bin` packages are. debconf is preseeded so future GRUB upgrades reinstall to the right disk, and on UEFI keep the removable-media copy.

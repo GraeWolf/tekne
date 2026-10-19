@@ -7,7 +7,7 @@ echo "PID1=$(cat /proc/1/comm)"
 [ -d /run/systemd/system ] && echo RUN_SYSTEMD=present || echo RUN_SYSTEMD=absent
 echo "SYSTEMD_PKGS=$(dpkg-query -W -f '${Package}\n' | grep -c systemd)"
 echo "LIVE_PKGS=$(dpkg-query -W -f '${Package} ${db:Status-Status}\n' 'live-*' tekne-installer 2>/dev/null | awk '$2 == "installed"' | wc -l)"
-echo "LIVE_FILES=$(ls /usr/lib/live/config/0161-tekne-autologin /usr/local/sbin/tekne-serial-getty /usr/share/tekne-installer 2>/dev/null | wc -l)"
+echo "LIVE_FILES=$(ls /usr/lib/live/config/0161-tekne-autologin /usr/lib/live/config/0162-tekne-console /usr/local/sbin/tekne-serial-getty /usr/share/tekne-installer 2>/dev/null | wc -l)"
 # DEC-042: autologin is on tty1 only, and only where the installer was asked
 # for it (or tekne-autologin turned it on). The live session's autologin on
 # tty1-6 must never reach an installed system.

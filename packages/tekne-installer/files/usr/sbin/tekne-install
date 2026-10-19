@@ -383,6 +383,7 @@ remove_live_parts() {
 	[ -z "${installed}" ] || in_target apt-get purge -y ${installed}
 	# Files Tekne adds to the live image only (live-build/config/).
 	rm -f "${TARGET}/usr/lib/live/config/0161-tekne-autologin" \
+		"${TARGET}/usr/lib/live/config/0162-tekne-console" \
 		"${TARGET}/usr/local/sbin/tekne-serial-getty"
 	rmdir "${TARGET}/usr/lib/live/config" "${TARGET}/usr/lib/live" 2>/dev/null || true
 	# The build adds a serial getty line (T0) for the live image's tests.

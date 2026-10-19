@@ -29,7 +29,8 @@ from the stick and RAM. Do this on any machine before installing Tekne on it
 3. Boot from the stick (usually via a one-time boot menu key such as F12, F9
    or Esc) and pick "Tekne live". If the screen stays black, try "Tekne live
    (safe graphics)". The desktop starts on its own; the live user is `user`,
-   password `live`.
+   password `live`. If neither brings up a desktop, "Tekne live (console, no
+   desktop)" boots to a shell on tty1, where `sudo tekne-install` installs.
 
 ### Checklist
 
@@ -70,6 +71,16 @@ power down when idle but can cause trouble on some models. Check:
    `modprobe.blacklist=nouveau` to the end of the `linux` line, press Ctrl-X,
    and repeat the checklist. If that fixes it, Tekne should blacklist
    `nouveau` by default; record the decision in DECISIONS.md.
+
+### Desktops with only an NVIDIA GPU
+
+When the monitors are plugged into an NVIDIA card and there's no integrated GPU
+in use, X has to run on that card. On `nouveau` the live desktop may not start;
+install from "Tekne live (console, no desktop)" instead. After the install, tty1
+stays on a console if X exits early (DEC-042), and tty2 has a normal login.
+`tekne-nvidia` doesn't help yet: outputs wired to the NVIDIA GPU don't work with
+it (DEC-041, known limitations). Note `lspci -nn`, `~/.local/state/tekne/startx.log`
+and `~/.local/state/xorg/Xorg.0.log` when reporting.
 
 ### NVIDIA's driver (`tekne-nvidia`)
 
