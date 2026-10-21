@@ -64,13 +64,20 @@ class Serial:
 # after a space: the serial line is also the system console, so a console message (for
 # example init's "INIT: " after `telinit q`) can land in front of it.
 _RESULT = re.compile(r"(?:^|\s)([A-Z][A-Za-z0-9_.+-]*)=(.*)$")
+# init's console messages, which can also arrive without a line break of their
+# own: "INIT: No inittab.d directory foundAUTOLOGIN_ON=ok" (CI run 39607940746),
+# or after a value. Removed before parsing: a leading one up to where a key
+# starts, and a trailing one.
+_INIT_LEADING = re.compile(r"^INIT: [^=]*?(?=[A-Z][A-Za-z0-9_.+-]*=)")
+_INIT_TRAILING = re.compile(r"INIT: .*$")
 
 
 def parse_results(output, skip=()):
     """The KEY=value lines a guest script printed, as a dict (keys in skip left out)."""
     results = {}
     for line in output.splitlines():
-        match = _RESULT.search(line.strip())
+        line = _INIT_LEADING.sub("", line.strip())
+        match = _RESULT.search(_INIT_TRAILING.sub("", line) if "=" in line else line)
         if match and match.group(1) not in skip:
             results[match.group(1)] = match.group(2).strip()
     return results
