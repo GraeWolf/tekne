@@ -420,7 +420,7 @@ When a decision changes, edit the entry in place and add a dated line to its
   - **On AC the GPU never powers off.** TLP keeps every device whose driver isn't on its denylist powered on AC (`RUNTIME_PM_ON_AC=on`). On battery it powers off, which the spike measured. A generic fix is awkward, because the GPU's audio function shares `snd_hda_intel` with the AMD audio. Accepted and documented; revisit later.
   - **Outputs wired to the NVIDIA GPU don't work.** On the development laptop that's the HDMI port. X loads NVIDIA's DDX, but it fails with "Failed to acquire modesetting permission" under both seatd and elogind (rootless X), so there's no NVIDIA X screen and no reverse PRIME. A test with X running as root will find the cause, but HDMI doesn't block 0.3.
 - **Alternatives:** Devuan's 550 from `excalibur-backports`, decided on 2026-10-03, which doesn't build for Tekne's kernel. Rebuilding Debian's `-5.1` for Excalibur and publishing it in Tekne's repository, which would make Tekne responsible for a non-Tekne package and its kernel compatibility.
-- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q1: backports). 2026-10-05: redesigned after the Phase 11 spike. Backports' 550 failed to build on 7.1 (`in_irq`, `vma->__vm_flags`). NVIDIA's 615 from its own repository built, and offload, idle power-off on battery, suspend and hibernate worked on the laptop with XLibre (DEC-027). The maintainer chose NVIDIA's repository under DEC-026, enabled by an opt-in `tekne-nvidia-repo` package; no sleep hook; the AC power limitation accepted; and HDMI not blocking 0.3.
+- **History:** 2026-10-03 decided by the maintainer with SPEC §9 (Q1: backports). 2026-10-05: redesigned after the Phase 11 spike. Backports' 550 failed to build on 7.1 (`in_irq`, `vma->__vm_flags`). NVIDIA's 615 from its own repository built, and offload, idle power-off on battery, suspend and hibernate worked on the laptop with XLibre (DEC-027). The maintainer chose NVIDIA's repository under DEC-026, enabled by an opt-in `tekne-nvidia-repo` package; no sleep hook; the AC power limitation accepted; and HDMI not blocking 0.3. 2026-10-21: the root-X test moves to 0.4, on the maintainer's desktop (RTX 4060 Ti driving its monitors), where outputs on the NVIDIA GPU are the only outputs (SPEC §10, draft).
 
 ### DEC-042 Autologin after LUKS
 - **Status:** Decided
@@ -472,3 +472,22 @@ When a decision changes, edit the entry in place and add a dated line to its
 - **Why a sleep hook, not a udev rule:** the `ac` driver is a module that udev loads during boot, and the device's `power/wakeup` file may not exist yet when udev processes it. Writing it before each sleep can't race. The hook logs to the kernel log once per boot, when it changes the setting.
 - **Not fixed by it:** the same laptop still wakes about every 20 minutes with the lid closed (also "Wakeup after ACPI Notify sync", 18 times overnight), probably the firmware's periodic battery report. Neither the AC adapter's nor the battery's wakeup setting controls it, and no counted wakeup source records it, so some driver calls the wakeup directly. Each costs ~26 s awake. It's a 0.3 known limitation, to report upstream with the logs.
 - **History:** 2026-10-17 decided by the maintainer (0.3-rc2, SPEC §9.6), after the 0.3-rc1 dogfooding found the loop.
+
+### DEC-047 Hardware adaptation: one image, decided from hardware facts
+- **Status:** Proposed. Recorded on 2026-10-21 at the maintainer's request (SPEC §10), before work starts on a second machine.
+- **What:** one ISO and one set of packages for laptops and desktops alike. Where a behaviour fits only some machines, Tekne decides it from facts the system can read, not from a "laptop" or "desktop" setting:
+  - what exists: batteries and AC adapters in `/sys/class/power_supply` (their `type` and `scope`), backlights in `/sys/class/backlight`, network devices, displays
+  - device IDs (PCI or USB `vendor:device`), for quirks (DEC-044)
+  - the GPU's vendor and the driver that's bound, for graphics (DEC-041)
+  - the firmware's chassis type (`/sys/class/dmi/id/chassis_type`) only as a last resort, because firmware often gets it wrong
+- **Where it's decided:**
+  - **The session**, at login: desktop components, such as the bar's modules (herbstluftwm's autostart already finds the battery's name for polybar).
+  - **Device-matched hooks and rules** in `tekne-*` packages: system behaviour, such as DEC-044's keyboard hook and DEC-046's AC-adapter hook, which act only on the devices they match.
+  - **Opt-in packages** for hardware stacks too heavy or risky for every install, such as `tekne-nvidia` (DEC-041).
+  - **The installer**, only for what must be on the kernel command line before the system can boot, such as keeping `nomodeset` (docs/installer.md).
+- **Why:**
+  - The live ISO has to be right on every machine without asking, so the same detection serves the live session and installed systems.
+  - Hardware changes after the install: a dock, an external monitor, a new GPU. A setting chosen at install time goes stale; a fact read at login doesn't.
+  - One code path, tested in CI on QEMU's hardware (no battery, no backlight), instead of a laptop variant and a desktop variant that drift apart.
+- **Not:** separate laptop and desktop ISOs or metapackages, or an installer question about the machine type.
+- **History:** 2026-10-21 proposed (Q2), when the maintainer set up a desktop (RTX 4060 Ti driving its monitors, no battery) next to the development laptop, each developing its own hardware's features (AGENTS.md, Machines and branches).

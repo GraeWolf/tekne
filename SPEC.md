@@ -401,7 +401,7 @@ installs (DEC-044, DEC-045). The rest is small configuration work that QEMU can 
 - **Secure Boot (DEC-016).** It already conflicts with hibernation (DEC-017), and a DKMS-built NVIDIA module is unsigned, so Secure Boot would also need a machine-owner key and module signing. Design that once, after the NVIDIA work exists. Adding it first would mean designing it twice.
 - **Manual partitioning and dual-boot (DEC-005).** They multiply the install matrix, and the only real user runs whole-disk LUKS.
 - **Real artwork (DEC-034).** This needs an artist, not engineering. DEC-034 already allows same-named files to replace the placeholders, so the art can arrive in any `tekne-branding` update.
-- **A second machine.** There wasn't one when 0.3 was planned. `tekne-nvidia` is the first hardware-specific package, and docs/testing.md gets an NVIDIA section, so other hybrid laptops can report results. During the release candidates (2026-10-18), the maintainer started installing Tekne on a desktop whose NVIDIA GPU drives its monitors, where the live desktop doesn't start. 0.3-rc4 adds a console boot entry to install it from, X's `fbdev` fallback and an installer that keeps `nomodeset`, which give it an unaccelerated desktop. Its GPU is later work: 0.4 starts with `tekne-nvidia` there and DEC-041's root-X test, as the maintainer chose on 2026-10-21, rather than debugging `nouveau`'s boot hang on its RTX 4060 Ti.
+- **A second machine.** There wasn't one when 0.3 was planned. `tekne-nvidia` is the first hardware-specific package, and docs/testing.md gets an NVIDIA section, so other hybrid laptops can report results. During the release candidates (2026-10-18), the maintainer started installing Tekne on a desktop whose NVIDIA GPU drives its monitors, where the live desktop doesn't start. 0.3-rc4 adds a console boot entry to install it from, X's `fbdev` fallback and an installer that keeps `nomodeset`, which give it an unaccelerated desktop. Its GPU is later work: 0.4 starts with `tekne-nvidia` there and DEC-041's root-X test, as the maintainer chose on 2026-10-21, rather than debugging `nouveau`'s boot hang on its RTX 4060 Ti (§10, draft).
 - **Devuan testing (Freia), and newer alacritty, neovim and fastfetch.** 0.3 uses Excalibur's versions. A newer neovim waits for 0.4 (Q6). See §9.5.
 - **The installer offering the NVIDIA driver.** The driver needs DKMS, a compiler and kernel headers, roughly 90 packages. Shipping them would push the ISO past GitHub's 2 GiB asset limit (DEC-020): the last local build is already 1.85 GiB. Fetching them during install would add a network dependency the installer doesn't have. In 0.3 it's a few apt commands after installing (DEC-041), and the installer prints that hint when it sees an NVIDIA GPU.
 - **Outputs wired to the NVIDIA GPU (HDMI on the development laptop).** Rootless X can't get modesetting permission from NVIDIA's DDX (DEC-041). Phase 11 runs a root-X test to find the cause, but HDMI doesn't block 0.3 (§9.6, P8).
@@ -540,7 +540,7 @@ Phase numbers continue from §8.
 - ✅ The DKMS module builds against Tekne's current backports kernel. Passed 2026-10-03 on 7.1.13 with NVIDIA 615. Recheck on 7.2.6 once backports finishes moving.
 - ✅ With XLibre, the desktop stays on the AMD GPU. An offloaded program runs on the NVIDIA GPU: `glxinfo` with the offload variables reports NVIDIA. Passed 2026-10-03, Vulkan too.
 - ✅ Suspend/resume and hibernate/resume work with the module loaded. On battery, the GPU's runtime status is `suspended` when idle. Passed 2026-10-03 with the spike's equivalents of DEC-044 and DEC-045 (5 of 5 resumes). On AC the GPU stays on (P7). Without DEC-045, 2 of 4 hibernates froze X's input.
-- ✅ External monitors work on the ports wired to the AMD GPU. For ports wired to the NVIDIA GPU (HDMI), a test with X running as root shows whether "Failed to acquire modesetting permission" is a permissions problem, and the result is recorded in DEC-041. HDMI doesn't block 0.3 (P8). Not done yet: it needs an external monitor.
+- ✅ External monitors work on the ports wired to the AMD GPU. For ports wired to the NVIDIA GPU (HDMI), a test with X running as root shows whether "Failed to acquire modesetting permission" is a permissions problem, and the result is recorded in DEC-041. HDMI doesn't block 0.3 (P8). Not done yet: it needs an external monitor. On 2026-10-21 it moved to 0.4's Phase 17, on the desktop, whose monitors are all on its NVIDIA GPU (§10, draft).
 
 **Phase 12: Desktop polish**. ✔ Complete (2026-10-05). Built in `22de822`, `1da1281`, `a641c00` and `026a241`. Along the way, Debian's move to kernel 7.2.6 needed three fixes: `linux-base` in DEC-036's pin (`2f660b7`), the installer copying `/boot` in a second pass because of 7.2's cross-filesystem hard links (`b82ad10`), and a checked `pkgmaster.devuan.org` fallback for a lagging mirror (`eab2683`). CI on `master` passed every test at `eab2683` (run 37305665749), including the upgrade from v0.2 and the new per-user checks. On the laptop (packages `0.3~rc1~dev77`, kernel 7.2.6, NVIDIA 615 rebuilt by DKMS), the maintainer confirmed the bar, the terminal, the floating pop-ups, the ssh-agent, and suspend and hibernate with the packaged hooks and no `~/.xserverrc`. With the keyboard hook disabled, 7.2.6 still loses the keyboard, and the `hid-asus` report was sent on 2026-10-05.
 - `tekne-config` and `tekne-desktop` changes from §9.2 Goal 3, and the resume fixes from §9.4: DEC-045's `LIBSEAT_BACKEND=logind`, DEC-044's keyboard hook, and the TLP hook link. docs/desktop-stack.md §2 is updated for the seat backend.
@@ -593,7 +593,109 @@ Phase numbers continue from §8.
 - ✅ (maintainer) On the desktop with the rc4 packages, the desktop starts on `fbdev`. Passed 2026-10-21 with the equivalent by hand: `modprobe.blacklist=nouveau` in a file in `/etc/default/grub.d/` and `xserver-xlibre-video-fbdev` installed with apt. Recheck after the upgrade to rc4, which adds `needs_root_rights=no`: X then runs as the user, not root.
 - ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.
 
-## 10. Notes for coding-agent sessions
+## 10. Tekne 0.4
+
+> **Status:** Draft by Claude Code, 2026-10-21, for the maintainer to edit. Nothing
+> here is agreed yet: the open questions are in §10.5. DEC-047 (hardware adaptation)
+> is Proposed with it.
+
+### 10.1 Theme: one Tekne on two machines
+
+0.3 made the hybrid-graphics laptop a daily driver. During its release candidates a
+second machine arrived: a desktop whose NVIDIA RTX 4060 Ti drives its monitors. It
+installs from the console entry and runs an unaccelerated desktop on `fbdev`
+(0.3-rc4), because `nouveau` hangs its boot and NVIDIA's driver can't drive outputs
+under rootless X (DEC-041).
+
+0.4 is developed on both machines at once, the laptop with Claude Code and the desktop
+with Grok Build, on short-lived branches (AGENTS.md, Machines and branches). It's
+about:
+1. The desktop's GPU: NVIDIA's driver driving the monitors.
+2. One Tekne that fits each machine by itself (DEC-047): the bar shows what the
+   hardware has, on every monitor.
+3. The laptop's leftovers from 0.3.
+
+### 10.2 Goals
+
+**Desktop track**
+1. **NVIDIA outputs.** First, DEC-041's root-X test on the desktop: X as root once
+   (`needs_root_rights=yes`, then back), to learn whether "Failed to acquire
+   modesetting permission" is a permission problem. The fix follows from the answer
+   (U1). The same fix should bring the laptop's HDMI port, which is wired to its
+   NVIDIA GPU.
+2. **`tekne-nvidia` on a machine without an integrated GPU.** X runs on the NVIDIA
+   GPU itself, not through PRIME offload, and `tekne-prime-run` isn't needed. If the
+   module fails, the system still reaches the `fbdev` desktop (0.3-rc4).
+
+**Shared track**
+3. **The bar fits the hardware (DEC-047).** The herbstluftwm autostart chooses
+   polybar's modules from what exists: `battery` only with a battery, and a backlight
+   module only with a backlight. The desktop shows no battery; the laptop is
+   unchanged.
+4. **A bar on every monitor** (U2), so a multi-monitor desktop and a docked laptop
+   both get one.
+
+**Laptop track** (candidates; U3 picks)
+5. The GPU powering off on AC (P7, DEC-041).
+6. The lid-closed wake about every 20 minutes (DEC-046, Not fixed by it).
+7. A newer neovim (§9.5, Q6).
+
+### 10.3 Not in 0.4
+§1's non-goals still apply, Secure Boot (DEC-016) and manual partitioning (DEC-005)
+among them. Also:
+- **Debugging `nouveau`'s boot hang on the RTX 4060 Ti.** Chosen on 2026-10-21 (Q3):
+  NVIDIA's driver is the way forward. A report upstream is U5.
+- **Separate laptop and desktop images or a machine-type setting** (DEC-047).
+
+### 10.4 Working on two machines
+- Branches, numbering and hardware checks follow AGENTS.md, Machines and branches.
+- Phase numbers are reserved below, one per track, so the two machines never need
+  the same new number. A further phase is reserved on `master` first.
+- A phase's maintainer checks run on the machine it concerns. Release candidates are
+  checked on both.
+
+### 10.5 Open questions for the maintainer
+- **U1, NVIDIA outputs:** if the root-X test shows that NVIDIA's DDX needs root,
+  should machines whose outputs are on an NVIDIA GPU run X as root (an exception to
+  DEC-045's rootless X), or should 0.4 look for a rootless fix first?
+  *Recommended: decide after the test; prefer a rootless fix.*
+- **U2, monitors:** one bar per monitor (polybar started once per `xrandr` monitor),
+  or one bar on the primary monitor only? *Recommended: one per monitor.*
+- **U3, laptop track:** which of goals 5–7 belong in 0.4?
+- **U4, Freia:** add §9.5's non-blocking CI job against Devuan testing in 0.4?
+- **U5, `nouveau`:** send a report upstream with a boot log from the desktop
+  (`nouveau.debug` on, `quiet` off)? *Recommended: yes; it's cheap, and nothing in
+  Tekne waits for it.*
+- **DEC-047:** confirm it, or change it, before Phase 16 builds on it.
+
+### 10.6 Phases and acceptance criteria
+Phase numbers continue from §9.7.
+
+**Phase 16 (shared): the bar fits the hardware.** Not started.
+- DEC-047 decided. The autostart picks polybar's modules from the hardware, and
+  starts one bar per monitor if U2 says so.
+- ✅ In QEMU (no battery, no backlight), `live-boot.py` checks that the bar has no
+  battery or backlight module and that polybar logs no module errors.
+- ✅ (maintainer, laptop) The bar is unchanged: battery and the rest.
+- ✅ (maintainer, desktop) No battery module, and a bar on each monitor if U2 says so.
+
+**Phase 17 (desktop): NVIDIA outputs.** Not started.
+- The root-X test, recorded in DEC-041. Then the fix chosen under U1, in `tekne-nvidia`
+  or `tekne-config`, with DEC-041 and docs/testing.md.
+- ✅ `tests/smoke/nvidia.py` still passes: QEMU has no NVIDIA GPU, so installing the
+  packages must change nothing there.
+- ✅ (maintainer, desktop) With `tekne-nvidia`, X runs on the RTX 4060 Ti and drives
+  every monitor. Suspend and hibernate resume. Removing it returns to `fbdev`.
+- ✅ (maintainer, laptop) The HDMI port works, or DEC-041 records why not.
+
+**Phase 18 (laptop): to be chosen under U3.** Not started.
+
+**Phase 19: docs and the 0.4 release.** Not started.
+- README, docs/customizing.md and docs/testing.md for desktops, and the CHANGELOG.
+- ✅ `v0.4` is released through CI (DEC-039) and published, after release candidates
+  checked on both machines.
+
+## 11. Notes for coding-agent sessions
 The full working rules are in [AGENTS.md](AGENTS.md). In short:
 - Keep SPEC.md and DECISIONS.md current. When a decision's status or content changes, update DECISIONS.md (with a dated History line) and every doc that references its `DEC-nnn` ID in the same commit.
 - Before adding any package, check that it exists in Excalibur and run the no-systemd check. Package names and systemd-free substitutes change between releases.

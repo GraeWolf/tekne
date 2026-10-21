@@ -25,6 +25,21 @@ reads them through CLAUDE.md, other agents read this file directly).
 - **Don't add loose config to `includes.chroot/`** unless it's live-session-only. Anything an installed system keeps belongs in a `packages/tekne-*` package.
 - The maintainer may edit docs directly between sessions. Re-read files rather than relying on memory of earlier sessions.
 
+## Machines and branches
+Tekne is developed on two machines, each running Tekne itself. Each develops the
+features its own hardware needs, and both merge into one Tekne for every machine.
+
+| Machine | Hardware | Agent | Its work |
+|---|---|---|---|
+| Laptop | ASUS ROG Zephyrus G15 (GA503RM): AMD iGPU drives the panel, NVIDIA RTX 3060 for offload, battery, backlight | Claude Code | Laptop features: battery, lid, suspend, hybrid graphics |
+| Desktop | NVIDIA RTX 4060 Ti driving the monitors, no battery; `nouveau` blacklisted, X on `fbdev` until NVIDIA's driver drives the outputs | Grok Build | Desktop features: NVIDIA outputs, several monitors |
+
+- **One Tekne, adapted to the hardware (DEC-047).** Never a laptop and a desktop variant, or a "machine type" setting. Decide from facts the system can read: a battery exists, a backlight exists, a device's ID, the GPU's driver. A change for one machine must leave the other unchanged, and CI's QEMU machine (no battery, no backlight, no NVIDIA) must still pass.
+- **Short-lived topic branches, named for the machine:** `laptop/<topic>` or `desktop/<topic>`. Work that concerns both can start on either machine. Start from an up-to-date `master`, run CI on the branch (Working with the maintainer, below), merge into `master` once it passes, and delete the branch. Don't keep long-lived `laptop` or `desktop` branches: both machines edit the same files (the bar, the session, SPEC, DECISIONS), and long branches drift apart.
+- **Shared numbers are reserved on `master` first:** `DEC-nnn` IDs (Working rules, above) and new SPEC phase numbers alike.
+- **Hardware checks belong to the machine they concern.** The laptop checks laptop features and the desktop checks desktop features. Both check each release candidate before it's released.
+- **The agents share only the repository.** Neither can see the other's notes or memory. Anything both machines need goes in this file, SPEC.md or DECISIONS.md. Pull `master` and re-read them before starting work.
+
 ## Working with the maintainer
 - **The maintainer runs root and push steps.** `sudo` needs their password and `git push` needs their SSH passphrase. Prepare the commit or command, give one command per block, and check the result afterwards through files, `git status`, `out/build.log`, `dpkg-query` or `gh`.
 - **Commit locally, one commit per phase step,** with the docs updated in the same commit.
