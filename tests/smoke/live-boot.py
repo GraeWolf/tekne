@@ -61,6 +61,9 @@ CHECK_CMD = (
     'echo "OS_ID=$(. /etc/os-release && echo $ID)"; '
     # DEC-045: X took its seat from elogind (libseat's logind backend).
     'grep -q "Seat opened with backend .logind." ~/.local/state/xorg/Xorg.0.log && echo SEAT=logind || echo SEAT=other; '
+    # DEC-045: X runs rootless, also on fbdev ("safe graphics"), where Xorg.wrap
+    # would run it as root without tekne-config's needs_root_rights=no.
+    'echo "X_USER=$(ps -o user= -C Xorg | head -n 1)"; '
     # Phase 12: the bar's symbols font (DEC-043) and the floating, centred
     # windows for nmtui, Blueman and Pavucontrol.
     'fc-match -f "%{family[0]}\\n" "Symbols Nerd Font" | grep -qx "Symbols Nerd Font" && echo SYMBOLS_FONT=present || echo SYMBOLS_FONT=missing; '
@@ -189,13 +192,14 @@ def run(mode, iso, safe=False):
     print(f"[{mode}] desktop processes not running: {', '.join(down) or 'none'}")
     print(f"[{mode}] firewall: {results.get('FIREWALL')}")
     print(f"[{mode}] os-release ID: {results.get('OS_ID')}")
-    print(f"[{mode}] X seat backend: {results.get('SEAT')}")
+    print(f"[{mode}] X seat backend: {results.get('SEAT')}, X runs as: {results.get('X_USER')}")
     print(f"[{mode}] symbols font: {results.get('SYMBOLS_FONT')}, centred float rules: {results.get('FLOAT_RULES')}, "
           f"ssh AddKeysToAgent: {results.get('SSH_ADDKEYS')}")
     print(f"[{mode}] listening beyond loopback: {', '.join(listening) or 'none'}")
     ok = (results.get("PID1") == "init" and results.get("RUN_SYSTEMD") == "absent" and not down
           and results.get("FIREWALL") == "loaded" and not listening
           and results.get("OS_ID") == "tekne" and results.get("SEAT") == "logind"
+          and results.get("X_USER") == LIVE_USER
           and results.get("SYMBOLS_FONT") == "present" and results.get("FLOAT_RULES") == "3"
           and results.get("SSH_ADDKEYS") == "yes")
     print(f"{'PASS' if ok else 'FAIL'} [{mode}] (serial log: {log_path})")

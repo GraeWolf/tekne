@@ -84,7 +84,8 @@ fully populated". Boot "Tekne live (safe graphics)" or "Tekne live (console, no
 desktop)" instead: both use `nomodeset`, so `nouveau` never loads, and the
 installer keeps `nomodeset` for the installed system (docs/installer.md). X then
 runs on the firmware's framebuffer through `fbdev`: one display, at the
-firmware's resolution, with no acceleration.
+firmware's resolution, with no acceleration. It runs rootless (DEC-045):
+`ps -o user= -C Xorg` shows your user, not `root`.
 
 An install made with an earlier ISO can do the same by hand: add `nomodeset`
 or `modprobe.blacklist=nouveau` to the kernel command line (a file in

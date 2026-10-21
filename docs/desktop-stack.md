@@ -112,7 +112,10 @@ rofi.
   `LIBSEAT_BACKEND=logind` it takes them from elogind, which also manages Tekne's
   sessions, instead of from seatd (installed because `libseat1` depends on
   `seatd | logind`). Under seatd, X sometimes didn't get its seat back after a
-  suspend's VT switch, which the NVIDIA driver forces on every suspend.
+  suspend's VT switch, which the NVIDIA driver forces on every suspend. X is
+  always rootless: tekne-config adds `needs_root_rights=no` to
+  `/etc/X11/Xwrapper.config` (unless it already says otherwise), because
+  `Xorg.wrap` would run X as root on the `fbdev` fallback, which has no KMS device.
 - **Sleep hooks.** Devuan's elogind runs executables in `/usr/libexec/system-sleep/`
   (and `/etc/elogind/system-sleep/`) with `pre`/`post` and the sleep operation, not in
   `/usr/lib/elogind/system-sleep/`. tekne-config ships two there:

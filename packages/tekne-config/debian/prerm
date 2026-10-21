@@ -5,6 +5,10 @@ if [ "$1" = remove ] || [ "$1" = deconfigure ]; then
 	update-alternatives --remove x-session-manager /usr/bin/tekne-session
 	update-alternatives --remove x-terminal-emulator /usr/bin/tekne-terminal
 	pam-auth-update --package --remove tekne-gnome-keyring
+	if [ -f /etc/X11/Xwrapper.config ]; then
+		sed -i -e '/^# Added by tekne-config: X runs rootless (DEC-045)\.$/{N;/\nneeds_root_rights=no$/d}' \
+			/etc/X11/Xwrapper.config
+	fi
 fi
 
 #DEBHELPER#

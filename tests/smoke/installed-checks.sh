@@ -30,6 +30,8 @@ echo "CMDLINE_OFFSET=$(sed -n 's/.*resume_offset=\([0-9]*\).*/\1/p' /proc/cmdlin
 echo "CMDLINE_RESUME=$(sed -n 's/.*resume=UUID=\([^ ]*\).*/\1/p' /proc/cmdline)"
 # The installer keeps the live session's nomodeset, in a GRUB file of its own.
 echo "NOMODESET=$(grep -qw nomodeset /proc/cmdline && echo yes || echo no)"
+# DEC-045: tekne-config makes X rootless even without KMS (fbdev).
+echo "XWRAPPER_ROOTLESS=$(grep -qx 'needs_root_rights=no' /etc/X11/Xwrapper.config 2>/dev/null && echo yes || echo no)"
 echo "NOMODESET_CFG=$([ -f /etc/default/grub.d/tekne-nomodeset.cfg ] && echo present || echo absent)"
 echo "ROOT_UUID=$(findmnt -no UUID /)"
 

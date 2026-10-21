@@ -11,6 +11,17 @@ if [ "$1" = configure ]; then
 	# Add pam_gnome_keyring to console logins (DEC-030); see
 	# /usr/share/pam-configs/tekne-gnome-keyring.
 	pam-auth-update --package
+	# X runs rootless on every install (DEC-045), also on the fbdev fallback,
+	# where Xorg.wrap's default ("auto") would run it as root because there's
+	# no KMS device. Xwrapper.config isn't a conffile, and
+	# xserver-xlibre-legacy's postinst rewrites only its allowed_users line,
+	# so this survives its upgrades. A needs_root_rights line of the admin's
+	# own is left alone; prerm removes only these two lines.
+	if ! grep -qs '^[[:space:]]*needs_root_rights' /etc/X11/Xwrapper.config; then
+		mkdir -p /etc/X11
+		printf '%s\n' "# Added by tekne-config: X runs rootless (DEC-045)." \
+			"needs_root_rights=no" >> /etc/X11/Xwrapper.config
+	fi
 fi
 
 #DEBHELPER#

@@ -104,6 +104,7 @@ def expected(mode, luks, upgraded=False, autologin=False, nomodeset=False):
         "AC_WAKE_HOOK": "idle", "UPOWER_CRITICAL": "HybridSleep",
         "NOMODESET": "yes" if nomodeset else "no",
         "NOMODESET_CFG": "present" if nomodeset else "absent",
+        "XWRAPPER_ROOTLESS": "yes",
     }
 
 
