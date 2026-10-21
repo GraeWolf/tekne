@@ -15,6 +15,10 @@ Depends: ${misc:Depends},
  tekne-apt-sources,
 # Display server and session (DEC-004, DEC-014, DEC-027)
  xlibre,
+# X's fallback when no GPU kernel driver runs (nomodeset, or a blacklisted
+# nouveau): it draws on the firmware's framebuffer, /dev/fb0. Debian's kernel
+# has no simpledrm, so without it X finds no screen at all.
+ xserver-xlibre-video-fbdev,
  xinit,
  dbus-x11,
  x11-xserver-utils,

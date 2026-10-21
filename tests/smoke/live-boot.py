@@ -12,13 +12,17 @@ component in DESKTOP_PROCESSES is running (Phase 2), that Tekne's firewall is
 loaded, that nothing listens beyond loopback (DEC-023), and that X took its
 seat from elogind (DEC-045).
 
-It then boots the "console, no desktop" entry (tekne.console), which it
-reaches with GRUB's menu keys and edits to add the serial console, and checks
-that tty1's autologin stays on a console, with no X, and that the login
-message points to the installer. Serial logs are written to
-out/serial-<mode>.log and out/serial-<mode>-console.log. Exits non-zero if
-any check fails.
+It then boots two more entries, reached with GRUB's menu keys and edited to
+add the serial console:
+- "safe graphics" (nomodeset), UEFI only: the same desktop checks, with X on
+  the firmware's framebuffer through the fbdev driver. BIOS has no
+  framebuffer for X there (docs/testing.md).
+- "console, no desktop" (tekne.console): tty1's autologin stays on a
+  console, with no X, and the login message points to the installer.
+Serial logs are written to out/serial-<mode>[-safe|-console].log. Exits
+non-zero if any check fails.
 """
+import functools
 import os
 import sys
 import tempfile
@@ -68,10 +72,10 @@ CHECK_CMD = (
     'echo __TEKNE""_END__\n'
 )
 
-# The "console, no desktop" entry (tekne.console): its title, and its place in
-# the GRUB menu, counting from 0.
-CONSOLE_ENTRY_TITLE = "Tekne live (console, no desktop)"
-CONSOLE_ENTRY_INDEX = 2
+# GRUB entries the test edits: their place in the menu, counting from 0, and
+# their titles.
+SAFE_ENTRY = (1, "Tekne live (safe graphics)")
+CONSOLE_ENTRY = (2, "Tekne live (console, no desktop)")
 CONSOLE_TTY1_TIMEOUT = 60
 # How long tty1's autologin shell runs with no X before the check passes;
 # startx would have started X within a few seconds.
@@ -136,16 +140,17 @@ def pick_serial_entry(con):
     con.send(SERIAL_ENTRY_HOTKEY)
 
 
-def pick_console_entry(con):
-    """Open the console entry in GRUB's editor and add the serial console to
-    its linux line: Ctrl+N moves down (the menu, then the editor's lines:
+def pick_edited_entry(entry, con):
+    """Open entry, (index, title), in GRUB's editor and add the serial console
+    to its linux line: Ctrl+N moves down (the menu, then the editor's lines:
     "setparams", the empty line after the entry's "{", then linux), Ctrl+E
     goes to the end of the line, and Ctrl+X boots. A hotkey would boot the
     entry before it can be edited."""
-    for key in "\x0e" * CONSOLE_ENTRY_INDEX + "e":
+    index, title = entry
+    for key in "\x0e" * index + "e":
         con.send(key)
         time.sleep(0.3)
-    con.expect(f"setparams '{CONSOLE_ENTRY_TITLE}'", CMD_TIMEOUT)
+    con.expect(f"setparams '{title}'", CMD_TIMEOUT)
     for key in "\x0e\x0e\x05":
         con.send(key)
         time.sleep(0.3)
@@ -159,13 +164,17 @@ def pick_console_entry(con):
     con.send("\x18")
 
 
-def run(mode, iso):
-    log_path = os.path.join(OUT, f"serial-{mode}.log")
-    result = boot_and_check(mode, iso, log_path, pick_serial_entry, CHECK_CMD,
-                            DESKTOP_TIMEOUT + CMD_TIMEOUT)
+def run(mode, iso, safe=False):
+    """The desktop checks, from the serial entry or, with safe, the "safe
+    graphics" entry."""
+    label = f"{mode} safe" if safe else mode
+    log_path = os.path.join(OUT, f"serial-{mode}{'-safe' if safe else ''}.log")
+    pick = functools.partial(pick_edited_entry, SAFE_ENTRY) if safe else pick_serial_entry
+    result = boot_and_check(mode, iso, log_path, pick, CHECK_CMD, DESKTOP_TIMEOUT + CMD_TIMEOUT)
     if result is None:
         return False
     boot_secs, output = result
+    mode = label
 
     lines = [line.strip() for line in output.splitlines()]
     results = parse_results(output, skip=("PKG", "LISTEN"))
@@ -195,7 +204,8 @@ def run(mode, iso):
 
 def run_console(mode, iso):
     log_path = os.path.join(OUT, f"serial-{mode}-console.log")
-    result = boot_and_check(mode, iso, log_path, pick_console_entry, CONSOLE_CHECK_CMD,
+    result = boot_and_check(mode, iso, log_path, functools.partial(pick_edited_entry, CONSOLE_ENTRY),
+                            CONSOLE_CHECK_CMD,
                             CONSOLE_TTY1_TIMEOUT + CONSOLE_NO_X_SECS + CMD_TIMEOUT)
     if result is None:
         return False
@@ -221,6 +231,9 @@ def main():
     print(f"Testing {iso}")
     modes = ["bios", "uefi"] if mode == "all" else [mode]
     results = [check(m, iso) for m in modes for check in (run, run_console)]
+    # BIOS: nomodeset leaves no framebuffer for X (docs/testing.md).
+    if "uefi" in modes:
+        results.append(run("uefi", iso, safe=True))
     return 0 if all(results) else 1
 
 

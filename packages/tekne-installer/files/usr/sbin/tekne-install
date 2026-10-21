@@ -4,6 +4,11 @@
 # LUKS2; BIOS or UEFI). Swap and hibernation: DEC-017. Autologin after the
 # LUKS passphrase: DEC-042.
 #
+# If the live session was booted with nomodeset ("safe graphics" or "console,
+# no desktop"), the installed system keeps it, in a GRUB file that says how to
+# remove it: a machine whose GPU driver broke the live session would
+# otherwise hang or lose its display on the first boot.
+#
 #   sudo tekne-install                    interactive (gum)
 #   sudo tekne-install --answers FILE     unattended, for automated tests
 #
@@ -35,6 +40,8 @@ USERNAME=""
 PASSWORD=""
 CONFIRM_DISK=""
 SERIAL_CONSOLE=no
+NOMODESET=""        # yes/no; empty: as the live session was booted
+NOMODESET_CFG=/etc/default/grub.d/tekne-nomodeset.cfg
 UNATTENDED=no
 
 # Package scripts in the target chroot must never prompt.
@@ -127,6 +134,7 @@ read_answers() {
 			PASSWORD)        PASSWORD="${value}" ;;
 			CONFIRM_DISK)    CONFIRM_DISK="${value}" ;;
 			SERIAL_CONSOLE)  SERIAL_CONSOLE="${value}" ;;
+			NOMODESET)       NOMODESET="${value}" ;;
 			*) die "unknown key in answers file: ${key}" ;;
 		esac
 	done < "$1"
@@ -171,6 +179,7 @@ validate_settings() {
 	valid_user "${USERNAME}" || die "invalid or reserved username: ${USERNAME}"
 	[ -n "${PASSWORD}" ] || die "user password is empty"
 	case "${SERIAL_CONSOLE}" in yes|no) ;; *) die "SERIAL_CONSOLE must be yes or no" ;; esac
+	case "${NOMODESET}" in yes|no) ;; *) die "NOMODESET must be yes or no" ;; esac
 	mounts="$(lsblk -nro MOUNTPOINTS "${DISK}")"
 	if grep -q . <<<"${mounts}"; then
 		die "${DISK} has mounted partitions; unmount them first"
@@ -282,7 +291,8 @@ ask_confirm() {
 		"Timezone:   ${TIMEZONE}" \
 		"Locale:     ${LOCALE}" \
 		"Keyboard:   ${KEYMAP}" \
-		"User:       ${USERNAME}${FULLNAME:+ (${FULLNAME})}, sudo; root login disabled"
+		"User:       ${USERNAME}${FULLNAME:+ (${FULLNAME})}, sudo; root login disabled" \
+		"Graphics:   $([ "${NOMODESET}" = yes ] && echo "nomodeset, as this live session (no GPU driver)" || echo "GPU driver")"
 	typed="$(gum input --header "Type ${name} to erase it and install, or Esc to go back")" || return 1
 	[ "${typed}" = "${name}" ] || { gum style --foreground 1 "Not confirmed."; sleep 2; return 1; }
 	CONFIRM_DISK="${typed}"
@@ -532,6 +542,16 @@ install_bootloader() {
 		EOF
 	fi
 	sed -i "s|^GRUB_CMDLINE_LINUX=\"\(.*\)\"|GRUB_CMDLINE_LINUX=\"\1 ${cmdline}\"|" "${TARGET}/etc/default/grub"
+	if [ "${NOMODESET}" = yes ]; then
+		cat > "${TARGET}${NOMODESET_CFG}" <<-'EOF'
+			# Written by tekne-install: the live session was booted with nomodeset
+			# (GRUB's "safe graphics" or "console, no desktop" entry), so this system
+			# is too. The GPU's kernel driver doesn't load, and X draws on the
+			# firmware's framebuffer (fbdev): one display, no acceleration.
+			# To use the GPU driver, delete this file and run: sudo update-grub
+			GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} nomodeset"
+		EOF
+	fi
 
 	step "Building the initramfs"
 	in_target update-initramfs -u -k all
@@ -548,10 +568,11 @@ install_bootloader() {
 # ---------------------------------------------------------------- main
 
 main() {
+	local live_nomodeset
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			--answers) UNATTENDED=yes; ANSWERS="${2:?--answers needs a file}"; shift 2 ;;
-			-h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+			-h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
 			*) die "unknown argument: $1" ;;
 		esac
 	done
@@ -562,9 +583,12 @@ main() {
 	chmod 600 "${LOG}"
 	log "tekne-install starting ($(firmware), unattended=${UNATTENDED})"
 
+	if grep -qw nomodeset /proc/cmdline; then live_nomodeset=yes; else live_nomodeset=no; fi
 	if [ "${UNATTENDED}" = yes ]; then
 		read_answers "${ANSWERS}"
+		NOMODESET="${NOMODESET:-${live_nomodeset}}"
 	else
+		NOMODESET="${live_nomodeset}"
 		interactive
 	fi
 	validate_settings
@@ -580,6 +604,10 @@ main() {
 	cp "${LOG}" "${TARGET}/var/log/tekne-installer.log"
 	chmod 600 "${TARGET}/var/log/tekne-installer.log"
 	say "Tekne is installed on ${DISK}."
+	if [ "${NOMODESET}" = yes ]; then
+		say "It boots with nomodeset, like this live session. To use the GPU driver"
+		say "later, delete ${NOMODESET_CFG} and run: sudo update-grub"
+	fi
 	if [ "${UNATTENDED}" = no ] && gum confirm "Reboot now? (remove the live USB when the screen goes dark)"; then
 		cleanup; trap - EXIT
 		reboot

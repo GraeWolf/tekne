@@ -13,7 +13,7 @@ and configured by `tekne-config`.
 
 | Role | Choice | Notes |
 |---|---|---|
-| Display server | `xlibre` (metapackage), `xinit` | X11 only (DEC-004). XLibre from its third-party repo (DEC-027); Excalibur backports aren't needed. Runs NVIDIA's 615 driver for PRIME offload; outputs wired to the NVIDIA GPU don't work yet (DEC-041) |
+| Display server | `xlibre` (metapackage), `xserver-xlibre-video-fbdev`, `xinit` | X11 only (DEC-004). `fbdev` is the fallback when no GPU kernel driver runs (`nomodeset`, or a blacklisted `nouveau`): Debian's kernel has no `simpledrm`, so X would otherwise find no screen. XLibre from its third-party repo (DEC-027); Excalibur backports aren't needed. Runs NVIDIA's 615 driver for PRIME offload; outputs wired to the NVIDIA GPU don't work yet (DEC-041) |
 | Login | tty1 login → `startx` (DEC-014) | Encrypted installs: optional autologin on tty1 after the LUKS passphrase (DEC-042, `tekne-autologin`). Live session: autologin on tty1–6 |
 | Seat/session | `elogind`, `libpam-elogind`, `polkitd` | Rootless X, device access, lid/power keys. Devuan's `libelogind-compat` replaces `libsystemd0` in the desktop image, and `udev` is Devuan's transitional package for `eudev` |
 | Window manager | `herbstluftwm` | |

@@ -27,10 +27,13 @@ from the stick and RAM. Do this on any machine before installing Tekne on it
 2. Disable Secure Boot in the firmware setup (DEC-016); Tekne's boot chain
    isn't signed.
 3. Boot from the stick (usually via a one-time boot menu key such as F12, F9
-   or Esc) and pick "Tekne live". If the screen stays black, try "Tekne live
-   (safe graphics)". The desktop starts on its own; the live user is `user`,
-   password `live`. If neither brings up a desktop, "Tekne live (console, no
+   or Esc) and pick "Tekne live". If the screen stays black or the boot
+   hangs, try "Tekne live (safe graphics)": no GPU driver, and X on the
+   firmware's framebuffer. That gives a desktop on UEFI machines only; with
+   BIOS it ends at a console. The desktop starts on its own; the live user is
+   `user`, password `live`. If no desktop comes up, "Tekne live (console, no
    desktop)" boots to a shell on tty1, where `sudo tekne-install` installs.
+   Installing from either of these keeps `nomodeset` on the installed system.
 
 ### Checklist
 
@@ -75,9 +78,19 @@ power down when idle but can cause trouble on some models. Check:
 ### Desktops with only an NVIDIA GPU
 
 When the monitors are plugged into an NVIDIA card and there's no integrated GPU
-in use, X has to run on that card. On `nouveau` the live desktop may not start;
-install from "Tekne live (console, no desktop)" instead. After the install, tty1
-stays on a console if X exits early (DEC-042), and tty2 has a normal login.
+in use, X has to run on that card. On `nouveau` the live desktop may not start,
+and on an RTX 4060 Ti (Ada) `nouveau` hangs the boot at "Waiting for /dev to be
+fully populated". Boot "Tekne live (safe graphics)" or "Tekne live (console, no
+desktop)" instead: both use `nomodeset`, so `nouveau` never loads, and the
+installer keeps `nomodeset` for the installed system (docs/installer.md). X then
+runs on the firmware's framebuffer through `fbdev`: one display, at the
+firmware's resolution, with no acceleration.
+
+An install made with an earlier ISO can do the same by hand: add `nomodeset`
+or `modprobe.blacklist=nouveau` to the kernel command line (a file in
+`/etc/default/grub.d/`, then `sudo update-grub`) and install
+`xserver-xlibre-video-fbdev`.
+
 `tekne-nvidia` doesn't help yet: outputs wired to the NVIDIA GPU don't work with
 it (DEC-041, known limitations). Note `lspci -nn`, `~/.local/state/tekne/startx.log`
 and `~/.local/state/xorg/Xorg.0.log` when reporting.

@@ -40,7 +40,7 @@ tty1 on a console, with the command in the login message.
    - Locale (a curated short list, with an option to type one)
    - Keyboard layout (defaults to the live session's layout)
 5. **User.** Full name, username (validated), and password twice. The user joins `sudo`, `audio`, `video`, `netdev`, `plugdev`, and `bluetooth`. The root account is locked.
-6. **Summary and confirmation.** Show every choice. The user has to type the disk name (for example `nvme0n1`) to proceed. Anything else aborts, and nothing has been written yet.
+6. **Summary and confirmation.** Show every choice, including "Graphics": `nomodeset` if the live session was booted with it (below), otherwise the GPU driver. The user has to type the disk name (for example `nvme0n1`) to proceed. Anything else aborts, and nothing has been written yet.
 7. **Partition**, from a fixed layout (§3).
 8. **Encrypt and format.** Run `cryptsetup luksFormat --type luks2` if encryption was chosen, then `mkfs.vfat` for the ESP and `mkfs.ext4` for the other partitions.
 9. **Copy** the live root to the target with `rsync -aHAX` (excluding `/proc`, `/sys`, `/dev`, `/run`, `/tmp`, `/media`, and live-only paths), and show progress. `/boot`'s contents are copied in a second pass, because `/boot` is a separate partition and a hard link can't cross filesystems: from kernel 7.2, `/usr/lib/modules/VERSION/vmlinuz` and `config` are hard links to the copies in `/boot`.
@@ -52,6 +52,7 @@ tty1 on a console, with the command in the login message.
     - Purge the live packages (`live-boot*`, `live-config*`, `live-tools`) and `tekne-installer`. Remove Tekne's live-only files (`0161-tekne-autologin`, `0162-tekne-console`, `tekne-serial-getty`), and restore `/etc/inittab` from `/usr/share/sysvinit/inittab`, which drops the live image's serial test getty.
     - Create the swapfile (DEC-017): `/swapfile`, size = RAM rounded up to the next GiB, mode 0600, created with `mkswap --file` so it has no holes
     - Configure resume: `resume=UUID=<root fs UUID> resume_offset=<offset>` go on the kernel command line (`GRUB_CMDLINE_LINUX`), because initramfs-tools reads `resume_offset` only from there. The offset is the first physical extent from `filefrag -v /swapfile`. `/etc/initramfs-tools/conf.d/resume` gets `RESUME=UUID=…`, which makes sure the resume hook is in the initramfs.
+    - Keep `nomodeset` if the live session was booted with it ("safe graphics" or "console, no desktop"): `/etc/default/grub.d/tekne-nomodeset.cfg` adds it to `GRUB_CMDLINE_LINUX_DEFAULT`, and its comment says how to remove it. A GPU driver that broke the live session would otherwise hang the first boot or lose its display, as `nouveau` did on an RTX 4060 Ti. X then runs on the firmware's framebuffer through `fbdev` (docs/desktop-stack.md). The installer's last message repeats how to remove it.
     - Install `grub-pc` (BIOS) or `grub-efi-amd64` (UEFI) offline from `.deb`s the build downloads into `/usr/share/tekne-installer/debs/`. The two conflict, so neither can be in the live image; their `-bin` packages are. debconf is preseeded so future GRUB upgrades reinstall to the right disk, and on UEFI keep the removable-media copy.
     - `cryptsetup`, `cryptsetup-initramfs`, `efibootmgr` and the GRUB package are marked manually installed, so `apt autoremove` can't take them.
     - Run `update-initramfs -u -k all`
@@ -87,10 +88,12 @@ initramfs) is needed.
 
 `tekne-install --answers <file>` reads a `KEY=value` answers file: `DISK=`,
 `CONFIRM_DISK=`, `ENCRYPT=`, `LUKS_PASSPHRASE=`, `AUTOLOGIN=`, `HOSTNAME=`, `TZ=`,
-`LOCALE=`, `KEYMAP=`, `FULLNAME=`, `USERNAME=`, `PASSWORD=`, and `SERIAL_CONSOLE=`.
+`LOCALE=`, `KEYMAP=`, `FULLNAME=`, `USERNAME=`, `PASSWORD=`, `SERIAL_CONSOLE=`, and `NOMODESET=`.
 `AUTOLOGIN=` defaults to `no`, and `yes` needs `ENCRYPT=yes`. `SERIAL_CONSOLE=`
 adds a serial getty and `console=ttyS0` to the installed system, for tests. That
-getty never logs in automatically. The
+getty never logs in automatically. `NOMODESET=` defaults to whether the live
+session was booted with `nomodeset`, so a test can ask for it from the serial
+entry. The
 file is parsed, never sourced, and unknown keys are an error. Every value goes
 through the same validation as the interactive prompts.
 
@@ -122,6 +125,7 @@ virtual disks. It then boots each installed disk, logs in over serial, and runs
   - The `login` keyring existed before that boot, so the installer made it. It's unlocked on the X session's bus after the serial password login.
   - Locking the session (`loginctl lock-sessions`) starts `i3lock`. A wrong password typed on the VM's keyboard, through QEMU's monitor, leaves it locked, and the right one unlocks it.
   - The plain cases have no autologin, and `tekne-autologin on` refuses there. On the LUKS cases, turning it off and on again leaves `/etc/inittab` unchanged.
+- uefi-plain asks for `NOMODESET=yes`: the installed system boots with `nomodeset`, from `tekne-nomodeset.cfg`. The other cases have neither.
 - uefi-luks only: with X broken on purpose, tty1 starts X once or twice and then stays on a console shell, even after that shell is logged out. Logging that shell out brings a password prompt, not another automatic login, and tty2's getty still asks for a login.
 
 Then it hibernates each installed system with `loginctl hibernate`, boots the disk again, and checks that the same session resumed (a token written to `/dev/shm` before hibernating is still there). In the LUKS cases, X is running on tty1 while it hibernates.

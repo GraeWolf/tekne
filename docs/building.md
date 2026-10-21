@@ -84,7 +84,7 @@ In `out/`, with the build's version in each name:
 ## Test
 
 ```sh
-tests/smoke/live-boot.py               # live ISO on BIOS and UEFI: sysvinit, desktop processes, firewall, os-release, console entry
+tests/smoke/live-boot.py               # live ISO on BIOS and UEFI: sysvinit, desktop processes, firewall, os-release, console and safe-graphics entries
 tests/smoke/repo.py                    # Tekne's APT repository: right key, wrong key, tampered .deb, pin (DEC-040)
 tests/smoke/install.py                 # unattended installs {BIOS,UEFI} x {plain,LUKS}: booted, checked, hibernated and resumed
 tests/smoke/install.py uefi luks --keep   # one case, keeping the VM in out/install-test/uefi-luks

@@ -25,7 +25,9 @@ out/tekne-*-amd64.iso (SPEC.md §5.2, docs/installer.md §6). For each case:
      shell out must bring a password prompt, not another automatic login
      (autologin is for a boot's first login only), and tty2 must still offer
      a normal login.
-  5. Compare the results with what the answers file asked for.
+  5. Compare the results with what the answers file asked for. uefi-plain
+     asks for NOMODESET=yes, as an install from the "safe graphics" or
+     "console" live entry gets: the installed system must boot with it.
 
 Everything runs in virtual machines; nothing touches the host's disks. Work
 files go to out/install-test/<case>/ and are deleted after a pass unless
@@ -71,7 +73,7 @@ ANSWERS = {
 BEGIN, END = "__TEKNE" + "_BEGIN__", "__TEKNE" + "_END__"
 
 
-def expected(mode, luks, upgraded=False, autologin=False):
+def expected(mode, luks, upgraded=False, autologin=False, nomodeset=False):
     # upgrade.py's user was made by the previous release, before /etc/skel had
     # .bash_aliases and before the installer made XDG directories. With
     # autologin, tekne-session's first X login creates the directories.
@@ -100,6 +102,8 @@ def expected(mode, luks, upgraded=False, autologin=False):
         "KEYRING_DAEMON": "running", "LOGIN_KEYRING": "unlocked", "PAM_ORDER": "ok",
         "SEAT_BACKEND": "logind", "ASUS_KBD_HOOK": "idle", "TLP_SLEEP_HOOK": "linked",
         "AC_WAKE_HOOK": "idle", "UPOWER_CRITICAL": "HybridSleep",
+        "NOMODESET": "yes" if nomodeset else "no",
+        "NOMODESET_CFG": "present" if nomodeset else "absent",
     }
 
 
@@ -355,11 +359,11 @@ def broken_x(mode, disk, vars_path, workdir):
     return problems
 
 
-def new_case(workdir, mode, luks, autologin=False):
+def new_case(workdir, mode, luks, autologin=False, nomodeset=False):
     """A fresh work directory with a blank disk, UEFI variables (UEFI only)
     and the answers file. Returns (disk, vars_path, answers_path). AUTOLOGIN
-    is written only when asked for: previous releases' installers, which
-    upgrade.py uses, reject keys they don't know."""
+    and NOMODESET are written only when asked for: previous releases'
+    installers, which upgrade.py uses, reject keys they don't know."""
     shutil.rmtree(workdir, ignore_errors=True)
     os.makedirs(workdir)
     disk = os.path.join(workdir, "disk.qcow2")
@@ -372,6 +376,8 @@ def new_case(workdir, mode, luks, autologin=False):
         f.write(f"ENCRYPT={'yes' if luks else 'no'}\n")
         if autologin:
             f.write("AUTOLOGIN=yes\n")
+        if nomodeset:
+            f.write("NOMODESET=yes\n")
     return disk, vars_path, answers_path
 
 
@@ -380,7 +386,11 @@ def run_case(mode, luks, iso, keep):
     workdir = os.path.join(WORK, name)
     # The LUKS cases ask for autologin (DEC-042); plain installs can't have it.
     autologin = luks
-    disk, vars_path, answers_path = new_case(workdir, mode, luks, autologin)
+    # As if installed from the "safe graphics" or "console" live entry (the
+    # serial entry has no nomodeset): the installer keeps nomodeset. One case
+    # is enough; a plain one starts no X, so only the boot is affected.
+    nomodeset = name == "uefi-plain"
+    disk, vars_path, answers_path = new_case(workdir, mode, luks, autologin, nomodeset)
 
     started = time.monotonic()
     try:
@@ -394,7 +404,7 @@ def run_case(mode, luks, iso, keep):
         print(f"FAIL [{name}]: {err}. Logs in {workdir}")
         return False
 
-    want = expected(mode, luks, autologin=autologin)
+    want = expected(mode, luks, autologin=autologin, nomodeset=nomodeset)
     problems = [f"{k}: got {results.get(k)!r}, want {v!r}" for k, v in want.items() if results.get(k) != v]
     if not results.get("SWAP_OFFSET") or results.get("SWAP_OFFSET") != results.get("CMDLINE_OFFSET"):
         problems.append(f"resume_offset on the kernel command line ({results.get('CMDLINE_OFFSET')}) "
