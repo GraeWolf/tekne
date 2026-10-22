@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.3-rc4 (2026-10-21)
+
+Installing Tekne on a desktop whose NVIDIA GPU drives its monitors, where the
+live desktop didn't start and the installed system hung at boot.
+
+### Added
+- **"Tekne live (console, no desktop)" in the boot menu** (hotkey `t`). It
+  boots without the GPU driver (`nomodeset`) and leaves tty1 at a shell, with
+  `sudo tekne-install` in the login message, for machines where no desktop
+  comes up.
+- **A desktop without a GPU driver.** X's `fbdev` driver is installed, so X can
+  draw on the firmware's framebuffer: one display, at the firmware's
+  resolution, with no acceleration. This is what "safe graphics" uses, and any
+  system booted with `nomodeset` or with its GPU driver blacklisted.
+
+### Changed
+- **The installer keeps `nomodeset`** when the live session was booted with it
+  ("safe graphics" or the console entry). It's set in
+  `/etc/default/grub.d/tekne-nomodeset.cfg`, and the installer says so. To use
+  the GPU driver later, delete that file and run `sudo update-grub`.
+- **X always runs as your user, never as root.** X's wrapper used to run X as
+  root when there was no GPU driver to use. `tekne-config` now adds
+  `needs_root_rights=no` to `/etc/X11/Xwrapper.config`, unless that file
+  already sets `needs_root_rights` (DEC-045).
+
+### Fixed
+- **"Safe graphics" never reached a desktop:** with `nomodeset` there was no X
+  driver at all. It works on UEFI machines now.
+- **A broken X restarted forever in the live session:** live-config's own
+  `startx` loop on tty1 ran after Tekne's, which stops after a failure. It's
+  turned off, so tty1 falls back to a console as installed systems do (DEC-042).
+
+**Known limitations** (added to 0.3-rc3's):
+- With BIOS, "safe graphics" ends at a console: `nomodeset` leaves X no
+  framebuffer there.
+- On an NVIDIA RTX 4060 Ti (Ada), `nouveau` hangs the boot at "Waiting for
+  /dev to be fully populated". Install from "safe graphics" or the console
+  entry, which keeps `nomodeset`. The NVIDIA driver (`tekne-nvidia`) can't
+  drive monitors plugged into the NVIDIA GPU yet (DEC-041); that's 0.4's work.
+
 ## 0.3-rc3 (2026-10-18)
 
 Fixes from 0.3-rc2's first night on the development laptop.
