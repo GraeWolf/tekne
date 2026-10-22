@@ -168,8 +168,10 @@ minutes and needs about 1 GiB, then sets it up for Tekne. Reboot afterwards.
   build checks that NVIDIA's module builds for every kernel it ships.
 - Suspend and hibernate work through the driver itself, with no extra setup.
 - Known limitations: on AC power the GPU stays on, because TLP keeps devices
-  powered when plugged in. Outputs wired to the NVIDIA GPU (often HDMI) don't
-  work yet; outputs on the integrated GPU do.
+  powered when plugged in. NVIDIA's proprietary X driver can't drive outputs
+  wired to the NVIDIA GPU (often HDMI); outputs on the integrated GPU do.
+  A modesetting-DDX path works on the maintainer's NVIDIA-only desktop (DEC-041);
+  packaging it is Phase 17.
 
 To go back to `nouveau`, remove the driver with `tekne-nvidia-remove`, then
 reboot. It purges both packages and everything built from the driver's source
