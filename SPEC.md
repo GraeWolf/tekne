@@ -596,8 +596,7 @@ Phase numbers continue from §8.
 ## 10. Tekne 0.4
 
 > **Status:** Drafted by Claude Code on 2026-10-21 and agreed by the maintainer the
-> same day (answers in §10.5), except U1, which is open. DEC-047 (hardware
-> adaptation) is Decided.
+> same day (answers in §10.5). DEC-047 (hardware adaptation) is Decided.
 
 ### 10.1 Theme: one Tekne on two machines
 
@@ -622,8 +621,7 @@ track and its own checks.
 **Desktop track**
 1. **NVIDIA outputs.** First, DEC-041's root-X test on the desktop: X as root once
    (`needs_root_rights=yes`, then back), to learn whether "Failed to acquire
-   modesetting permission" is a permission problem. The fix follows from the answer
-   (U1). The same fix should bring the laptop's HDMI port, which is wired to its
+   modesetting permission" is a permission problem. Then a rootless fix (U1). The same fix should bring the laptop's HDMI port, which is wired to its
    NVIDIA GPU.
 2. **`tekne-nvidia` on a machine without an integrated GPU.** X runs on the NVIDIA
    GPU itself, not through PRIME offload, and `tekne-prime-run` isn't needed. If the
@@ -658,10 +656,9 @@ among them. Also:
   checked on both.
 
 ### 10.5 Maintainer's answers (2026-10-21)
-- **U1, NVIDIA outputs:** *open.* If the root-X test shows that NVIDIA's DDX needs
-  root, should machines whose outputs are on an NVIDIA GPU run X as root (an
-  exception to DEC-045's rootless X), or should 0.4 look for a rootless fix first?
-  The answer "a" is being clarified. Phase 17's test comes first either way.
+- **U1, NVIDIA outputs:** decide after the root-X test, and look for a rootless fix
+  first. Running X as root on machines whose outputs are on an NVIDIA GPU, an
+  exception to DEC-045, is considered only if no rootless fix is found.
 - **U2, monitors:** yes, a bar on every monitor.
 - **U3, laptop track:** none in 0.4 (d). The candidates are listed in §10.3.
 - **U4, Freia:** no CI job against Devuan testing in 0.4.
@@ -681,8 +678,9 @@ Phase numbers continue from §9.7.
 - ✅ (maintainer, desktop) No battery module, and a bar on each monitor.
 
 **Phase 17 (desktop): NVIDIA outputs.** Not started.
-- The root-X test, recorded in DEC-041. Then the fix chosen under U1, in `tekne-nvidia`
-  or `tekne-config`, with DEC-041 and docs/testing.md.
+- The root-X test, recorded in DEC-041. Then a rootless fix (U1), in `tekne-nvidia`
+  or `tekne-config`, with DEC-041 and docs/testing.md. If there's none, the choice of
+  root X as an exception to DEC-045 goes back to the maintainer.
 - ✅ `tests/smoke/nvidia.py` still passes: QEMU has no NVIDIA GPU, so installing the
   packages must change nothing there.
 - ✅ (maintainer, desktop) With `tekne-nvidia`, X runs on the RTX 4060 Ti and drives
