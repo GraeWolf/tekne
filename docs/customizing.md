@@ -66,13 +66,12 @@ lock screen and the wallpaper. Details: [desktop-stack.md](desktop-stack.md).
 
 Cursor, VS Code and VSCodium are Electron apps, and Electron chooses its
 secret store from `XDG_CURRENT_DESKTOP`. Tekne's herbstluftwm session leaves
-that variable unset. Setting it to `GNOME` would make `OnlyShowIn=` autostart
-entries and portals treat this session as GNOME. Electron then sees an unknown
-desktop and stores secrets with its `basic_text` fallback. The editor warns
-"An OS keyring couldn't be identified..." and offers "Use Weaker Encryption",
-even when gnome-keyring is running and the `login` keyring is unlocked
-(DEC-030). Brave, Claude Desktop and Melia aren't affected: their keys are
-already in that keyring.
+that variable unset. Electron then sees an unknown desktop and stores secrets
+with its `basic_text` fallback. The editor warns "An OS keyring couldn't be
+identified..." and offers "Use Weaker Encryption", even when gnome-keyring is
+running and the `login` keyring is unlocked (DEC-030). Brave and Melia aren't
+affected: their keys are already in that keyring. Setting it to `GNOME` would
+make `OnlyShowIn=` autostart entries and portals treat this session as GNOME.
 
 To use the keyring, open the Command Palette, run `Preferences: Configure
 Runtime Arguments`, and add this property to the object in `argv.json`:
