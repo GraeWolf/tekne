@@ -687,9 +687,10 @@ Phase numbers continue from §9.7.
 - ✅ Root-X test, recorded in DEC-041 (2026-10-22): same "Failed to acquire
   modesetting permission" as root; not a permissions problem; no DEC-045 exception.
 - ✅ Modesetting-DDX trial on the desktop (2026-10-22), recorded in DEC-041: rootless
-  X on `modesetting` over `nvidia-drm` drives the monitors. Hand config only so far.
-- Package that path (U1) in `tekne-nvidia` or `tekne-config`, with DEC-041 and
-  docs/testing.md, without breaking laptop PRIME offload (DEC-047).
+  X on `modesetting` over `nvidia-drm` drives the monitors.
+- Package that path (U1) in `tekne-nvidia`: `00-tekne-nvidia-modesetting.conf` and
+  divert of NVIDIA's OutputClass snippets (DEC-041 Design), with docs/testing.md.
+  Same path on every machine (DEC-047); confirm laptop offload and HDMI after.
 - ✅ `tests/smoke/nvidia.py` still passes: QEMU has no NVIDIA GPU, so installing the
   packages must change nothing there.
 - ✅ (maintainer, desktop) With `tekne-nvidia`, X runs on the RTX 4060 Ti and drives

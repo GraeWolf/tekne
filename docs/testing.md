@@ -117,9 +117,10 @@ in QEMU (`tests/smoke/nvidia.py`), but only real hardware can check the driver:
    ships.)
 5. **A kernel upgrade:** after `apt upgrade` brings a new backports kernel, DKMS
    builds the module for it (step 1 after rebooting).
-6. **External monitors:** outputs wired to the integrated GPU work. NVIDIA's
-   proprietary X DDX can't drive outputs on the NVIDIA GPU (DEC-041); note which
-   ones. After Phase 17's modesetting path is packaged, recheck those ports.
+6. **External monitors:** outputs wired to the integrated GPU work. Outputs on
+   the NVIDIA GPU (often HDMI) should work through modesetting (DEC-041);
+   note which ones. On a hybrid laptop, confirm `tekne-prime-run` still
+   offloads after the modesetting path.
 7. **Back to nouveau:** `sudo tekne-nvidia-remove`, then reboot. `nouveau` is
    loaded again, and `dpkg -l '*nvidia*'` lists only `firmware-nvidia-graphics`.
 

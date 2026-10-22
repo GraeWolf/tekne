@@ -68,6 +68,9 @@ echo "DRIVER_VERSION=$(dpkg-query -W -f '${Version}' nvidia-driver 2>/dev/null)"
 echo "DKMS=$(dkms status 2>/dev/null | grep -c "$(uname -r).*installed")"
 echo "PERSISTENCED=$(dpkg-query -W -f '${db:Status-Status}' nvidia-persistenced 2>/dev/null || echo absent)"
 echo "PRIME_RUN=$([ -x /usr/bin/tekne-prime-run ] && echo present || echo missing)"
+# DEC-041 Phase 17: modesetting OutputClass and diverted NVIDIA snippets.
+echo "MODESETTING_CONF=$([ -f /etc/X11/xorg.conf.d/00-tekne-nvidia-modesetting.conf ] && echo present || echo missing)"
+echo "NVIDIA_XORG_DIVERTS=$(dpkg-divert --list 2>/dev/null | grep -c ' by tekne-nvidia$' || true)"
 """
 
 PURGE_GUEST = r"""
@@ -81,6 +84,9 @@ echo "LEFT=$(dpkg-query -W -f '${Package} ${db:Status-Status}\n' '*nvidia*' 2>/d
 	| awk '$2 == "installed" && $1 != "firmware-nvidia-graphics"' | tr '\n' ' ')"
 echo "NVIDIA_SOURCE=$([ -e /etc/apt/sources.list.d/tekne-nvidia.sources ] && echo present || echo gone)"
 echo "BLACKLIST=$(grep -ls 'blacklist nouveau' /etc/modprobe.d/*.conf | tr '\n' ' ')"
+echo "MODESETTING_CONF=$([ -f /etc/X11/xorg.conf.d/00-tekne-nvidia-modesetting.conf ] && echo present || echo gone)"
+echo "NVIDIA_XORG_DIVERTS=$(dpkg-divert --list 2>/dev/null | grep -c ' by tekne-nvidia$' || true)"
+
 # If anything is left, say why: manual marks, and what apt's autoremover
 # follows to reach nvidia-driver.
 if dpkg-query -W -f '${db:Status-Status}' nvidia-driver 2>/dev/null | grep -qx installed; then
@@ -182,7 +188,8 @@ def main():
           f"DKMS modules for the running kernel: {r.get('DKMS')}")
     for key, want in [("APT_UPDATE", "ok"), ("REPO_INSTALL", "ok"), ("NVIDIA_UPDATE", "ok"),
                       ("NVIDIA_INSTALL", "ok"), ("NEW_SYSTEMD", "0"), ("DRIVER_ORIGIN", "1"),
-                      ("DKMS", "1"), ("PERSISTENCED", "absent"), ("PRIME_RUN", "present")]:
+                      ("DKMS", "1"), ("PERSISTENCED", "absent"), ("PRIME_RUN", "present"),
+                      ("MODESETTING_CONF", "present"), ("NVIDIA_XORG_DIVERTS", "3")]:
         got = r.get(key)
         if key == "PERSISTENCED" and got == "not-installed":
             got = "absent"
@@ -199,7 +206,9 @@ def main():
         except (TimeoutError, RuntimeError) as err:
             problems.append(f"purge: {err}")
             r = {}
-        for key, want in [("PURGE", "ok"), ("LEFT", ""), ("NVIDIA_SOURCE", "gone"), ("BLACKLIST", "")]:
+        for key, want in [("PURGE", "ok"), ("LEFT", ""), ("NVIDIA_SOURCE", "gone"),
+                          ("BLACKLIST", ""), ("MODESETTING_CONF", "gone"),
+                          ("NVIDIA_XORG_DIVERTS", "0")]:
             if r and r.get(key, "").strip() != want:
                 problems.append(f"purge: {key}: got {r.get(key)!r}, want {want!r}")
         if problems and r:

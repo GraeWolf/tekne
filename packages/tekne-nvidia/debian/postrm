@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+undivert() {
+	dpkg-divert --package tekne-nvidia --remove --rename --divert "$1" "$2"
+}
+
+if [ "$1" = remove ] || [ "$1" = abort-install ] || [ "$1" = disappear ]; then
+	undivert /usr/share/tekne/diverted/10-nvidia-debian.conf \
+		/etc/X11/xorg.conf.d/10-nvidia-debian.conf
+	undivert /usr/share/tekne/diverted/10-nvidia-modules-debian.conf \
+		/etc/X11/xorg.conf.d/10-nvidia-modules-debian.conf
+	undivert /usr/share/tekne/diverted/nvidia-drm-outputclass.conf \
+		/usr/share/X11/xorg.conf.d/nvidia-drm-outputclass.conf
+fi
+
+#DEBHELPER#

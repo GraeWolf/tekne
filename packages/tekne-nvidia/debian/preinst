@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+# NVIDIA's OutputClass snippets set Driver "nvidia" and ModulePath for
+# glxserver_nvidia. OutputClass applies ModulePath from every match even when
+# our 00-tekne-nvidia-modesetting.conf already won Driver (first entry wins).
+# Divert the ModulePath-bearing debian snippets and the share Driver snippet
+# aside (DEC-041 Phase 17, Q2 A).
+divert() {
+	dpkg-divert --package tekne-nvidia --add --rename --divert "$1" "$2"
+}
+
+if [ "$1" = install ] || [ "$1" = upgrade ]; then
+	mkdir -p /usr/share/tekne/diverted
+	divert /usr/share/tekne/diverted/10-nvidia-debian.conf \
+		/etc/X11/xorg.conf.d/10-nvidia-debian.conf
+	divert /usr/share/tekne/diverted/10-nvidia-modules-debian.conf \
+		/etc/X11/xorg.conf.d/10-nvidia-modules-debian.conf
+	divert /usr/share/tekne/diverted/nvidia-drm-outputclass.conf \
+		/usr/share/X11/xorg.conf.d/nvidia-drm-outputclass.conf
+fi
+
+#DEBHELPER#

@@ -1,3 +1,11 @@
+tekne-nvidia (0.3~rc5) unstable; urgency=medium
+
+  * Drive nvidia-drm with XLibre's modesetting DDX; divert NVIDIA's
+    OutputClass snippets that select the proprietary DDX or its GLX
+    ModulePath (DEC-041, Phase 17).
+
+ -- Tekne project <noreply@tekne.invalid>  Wed, 22 Oct 2026 23:30:00 +0000
+
 tekne-nvidia (0.3~rc1) unstable; urgency=medium
 
   * Initial release: NVIDIA's display driver from NVIDIA's repository, with

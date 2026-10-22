@@ -19,9 +19,12 @@ Depends: ${misc:Depends},
  linux-headers-amd64
 Description: NVIDIA's display driver, set up for Tekne (opt-in)
  Installs NVIDIA's current display driver from NVIDIA's repository (through
- tekne-nvidia-repo) and sets it up for Tekne's hybrid-graphics laptops:
- the desktop stays on the integrated GPU, the NVIDIA GPU powers off when
- idle, and tekne-prime-run runs a program on it (PRIME render offload).
+ tekne-nvidia-repo) and sets it up for Tekne. X drives nvidia-drm with
+ XLibre's modesetting DDX (DEC-041): NVIDIA's proprietary X driver can't
+ take modesetting permission. On hybrid laptops the desktop stays on the
+ integrated GPU, the NVIDIA GPU powers off when idle, and tekne-prime-run
+ runs a program on it (PRIME render offload). On machines whose outputs are
+ on the NVIDIA GPU, the same modesetting path drives the monitors.
  Suspend and hibernate use the driver's kernel notifiers, with no systemd.
  .
  Open kernel modules only: Turing (GTX 16xx, RTX 20xx) and newer GPUs.

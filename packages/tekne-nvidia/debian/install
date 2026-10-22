@@ -1,4 +1,5 @@
 files/etc/modprobe.d/tekne-nvidia.conf etc/modprobe.d/
+files/etc/X11/xorg.conf.d/00-tekne-nvidia-modesetting.conf etc/X11/xorg.conf.d/
 files/usr/lib/udev/rules.d/80-tekne-nvidia-pm.rules usr/lib/udev/rules.d/
 files/usr/bin/tekne-prime-run usr/bin/
 files/usr/sbin/tekne-nvidia-remove usr/sbin/

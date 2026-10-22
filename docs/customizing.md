@@ -146,10 +146,11 @@ successfully; GRUB lists both under "Advanced options".
 
 ### NVIDIA graphics
 
-Tekne uses the open `nouveau` driver for NVIDIA GPUs. For NVIDIA's own driver,
-with PRIME offload on hybrid laptops and the GPU powered off when idle, install
-it from NVIDIA's repository (DEC-041). It supports Turing (GTX 16xx, RTX 20xx)
-and newer GPUs, and needs Secure Boot off (DEC-016), like Tekne itself:
+Tekne uses the open `nouveau` driver for NVIDIA GPUs. For NVIDIA's own driver
+(modesetting on the GPU's outputs, PRIME offload on hybrid laptops, and the GPU
+powered off when idle), install it from NVIDIA's repository (DEC-041). It
+supports Turing (GTX 16xx, RTX 20xx) and newer GPUs, and needs Secure Boot off
+(DEC-016), like Tekne itself:
 
 ```sh
 sudo apt install tekne-nvidia-repo
@@ -162,16 +163,18 @@ packages (DEC-026). Systems without it never contact NVIDIA. `tekne-nvidia`
 installs the driver and builds its kernel module with DKMS, which takes a few
 minutes and needs about 1 GiB, then sets it up for Tekne. Reboot afterwards.
 
-- The desktop stays on the integrated GPU. To run a program on the NVIDIA GPU:
-  `tekne-prime-run PROGRAM`, for example `tekne-prime-run glxinfo -B`.
+- X drives the NVIDIA GPU's outputs with XLibre's `modesetting` driver over
+  `nvidia-drm` (DEC-041), not NVIDIA's proprietary X driver.
+- On a hybrid laptop the desktop stays on the integrated GPU. To run a program
+  on the NVIDIA GPU: `tekne-prime-run PROGRAM`, for example
+  `tekne-prime-run glxinfo -B`.
+- On a machine whose monitors are wired only to the NVIDIA GPU, the same
+  install drives those monitors.
 - Each new kernel from `apt upgrade` gets the module rebuilt by DKMS. Tekne's
   build checks that NVIDIA's module builds for every kernel it ships.
 - Suspend and hibernate work through the driver itself, with no extra setup.
-- Known limitations: on AC power the GPU stays on, because TLP keeps devices
-  powered when plugged in. NVIDIA's proprietary X driver can't drive outputs
-  wired to the NVIDIA GPU (often HDMI); outputs on the integrated GPU do.
-  A modesetting-DDX path works on the maintainer's NVIDIA-only desktop (DEC-041);
-  packaging it is Phase 17.
+- Known limitation: on AC power the GPU stays on, because TLP keeps devices
+  powered when plugged in.
 
 To go back to `nouveau`, remove the driver with `tekne-nvidia-remove`, then
 reboot. It purges both packages and everything built from the driver's source
