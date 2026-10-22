@@ -607,7 +607,7 @@ installs from the console entry and runs an unaccelerated desktop on `fbdev`
 under rootless X (DEC-041).
 
 0.4 is developed on both machines at once, the laptop with Claude Code and the desktop
-with Grok Build, on short-lived branches (AGENTS.md, Machines and branches). It's
+with Cursor (Grok 4.7), on short-lived branches (AGENTS.md, Machines and branches). It's
 about:
 1. The desktop's GPU: NVIDIA's driver driving the monitors.
 2. One Tekne that fits each machine by itself (DEC-047): the bar shows what the

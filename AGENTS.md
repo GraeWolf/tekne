@@ -32,7 +32,7 @@ features its own hardware needs, and both merge into one Tekne for every machine
 | Machine | Hardware | Agent | Its work |
 |---|---|---|---|
 | Laptop | ASUS ROG Zephyrus G15 (GA503RM): AMD iGPU drives the panel, NVIDIA RTX 3060 for offload, battery, backlight | Claude Code | Laptop features: battery, lid, suspend, hybrid graphics |
-| Desktop | NVIDIA RTX 4060 Ti driving the monitors, no battery; `nouveau` blacklisted, X on `fbdev` until NVIDIA's driver drives the outputs | Grok Build | Desktop features: NVIDIA outputs, several monitors |
+| Desktop | NVIDIA RTX 4060 Ti driving the monitors, no battery; `nouveau` blacklisted, X on `fbdev` until NVIDIA's driver drives the outputs | Cursor (Grok 4.7) | Desktop features: NVIDIA outputs, several monitors |
 
 - **One Tekne, adapted to the hardware (DEC-047).** Never a laptop and a desktop variant, or a "machine type" setting. Decide from facts the system can read: a battery exists, a backlight exists, a device's ID, the GPU's driver. A change for one machine must leave the other unchanged, and CI's QEMU machine (no battery, no backlight, no NVIDIA) must still pass.
 - **Short-lived topic branches, named for the machine:** `laptop/<topic>` or `desktop/<topic>`. Work that concerns both can start on either machine. Start from an up-to-date `master`, run CI on the branch (Working with the maintainer, below), merge into `master` once it passes, and delete the branch. Don't keep long-lived `laptop` or `desktop` branches: both machines edit the same files (the bar, the session, SPEC, DECISIONS), and long branches drift apart.
