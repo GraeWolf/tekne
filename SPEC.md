@@ -634,6 +634,12 @@ track and its own checks.
    unchanged.
 4. **A bar on every monitor** (U2): polybar starts once per monitor, so a
    multi-monitor desktop and a docked laptop both get one on each screen.
+5. **VS Code-family editors and the keyring (documented, DEC-030).** Cursor,
+   VS Code and VSCodium need `"password-store": "gnome-libsecret"` in their
+   runtime arguments. Electron chooses its secret store from
+   `XDG_CURRENT_DESKTOP`, which the session leaves unset: a `GNOME` value
+   would mislead `OnlyShowIn=` autostart entries and portals. Written up in
+   docs/customizing.md and the Keyring row of docs/desktop-stack.md.
 
 **Laptop track:** none in 0.4 (U3).
 
