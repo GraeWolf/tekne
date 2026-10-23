@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **Critical battery with NVIDIA's driver:** the hybrid sleep that UPower runs
+  at 2% battery could leave NVIDIA's driver broken: after it, the laptop
+  couldn't suspend, and reboot and poweroff hung until the power button was
+  held. Any return from a hibernation without a fresh boot does this to the
+  driver. With `tekne-nvidia` installed, hybrid sleep is now turned off, and
+  UPower hibernates instead, which powers off (DEC-041). Systems without
+  NVIDIA's driver keep hybrid sleep.
+
+**Known limitations** (added to the earlier candidates'):
+- After days of uptime, a hibernation can fail for lack of memory to build the
+  image. With NVIDIA's driver, the laptop then can't suspend until it's powered
+  off. Rebooting every few days avoids it.
+
 ## 0.3-rc4 (2026-10-21)
 
 Installing Tekne on a desktop whose NVIDIA GPU drives its monitors, where the

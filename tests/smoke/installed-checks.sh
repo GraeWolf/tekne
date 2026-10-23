@@ -100,6 +100,9 @@ fi
 # DEC-017: UPower hybrid-sleeps at critical battery. Asking it starts the
 # daemon through D-Bus activation, which must work without systemd.
 echo "UPOWER_CRITICAL=$(upower --dump 2>/dev/null | awk '$1 == "critical-action:" { print $2; exit }')"
+# DEC-041: tekne-nvidia turns hybrid sleep off (UPower then hibernates instead).
+echo "HYBRID_SLEEP=$(dbus-send --system --print-reply --dest=org.freedesktop.login1 /org/freedesktop/login1 \
+	org.freedesktop.login1.Manager.CanHybridSleep 2>/dev/null | awk -F'"' '/string/ { print $2 }')"
 echo "TLP_SLEEP_HOOK=$([ -x /usr/libexec/system-sleep/49-tekne-tlp ] && [ -x /usr/lib/elogind/system-sleep/49-tlp-sleep ] && echo linked || echo missing)"
 echo "GRUB_PKG=$(dpkg-query -W -f '${Package} ${db:Status-Status}\n' grub-pc grub-efi-amd64 2>/dev/null | awk '$2 == "installed" { print $1 }')"
 # Phase 12, per user: XDG directories made by the installer, and the shell

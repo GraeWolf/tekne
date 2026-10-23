@@ -101,7 +101,7 @@ def expected(mode, luks, upgraded=False, autologin=False, nomodeset=False):
         "HIBERNATE": "resumed",
         "KEYRING_DAEMON": "running", "LOGIN_KEYRING": "unlocked", "PAM_ORDER": "ok",
         "SEAT_BACKEND": "logind", "ASUS_KBD_HOOK": "idle", "TLP_SLEEP_HOOK": "linked",
-        "AC_WAKE_HOOK": "idle", "UPOWER_CRITICAL": "HybridSleep",
+        "AC_WAKE_HOOK": "idle", "UPOWER_CRITICAL": "HybridSleep", "HYBRID_SLEEP": "yes",
         "NOMODESET": "yes" if nomodeset else "no",
         "NOMODESET_CFG": "present" if nomodeset else "absent",
         "XWRAPPER_ROOTLESS": "yes",

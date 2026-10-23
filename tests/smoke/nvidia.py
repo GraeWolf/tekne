@@ -17,7 +17,9 @@ is checked on real hardware (docs/testing.md).
      repository, that DKMS built the module for the running kernel, that
      nvidia-persistenced wasn't installed, and that no systemd package was.
   3. Reboot and run install.py's checks: installed-checks.sh (which also
-     checks there's no systemd package), hibernate and resume.
+     checks there's no systemd package), hibernate and resume. With the
+     packages installed, elogind must report no hybrid sleep and UPower must
+     hibernate at critical battery instead (DEC-041).
   4. Remove it the documented way (tekne-nvidia-remove) and check nothing of
      the driver is left: no NVIDIA package, no NVIDIA source, no nouveau
      blacklist. A plain "apt purge --autoremove" isn't enough (see the script).
@@ -127,8 +129,9 @@ def run_guest(mode, luks, disk, vars_path, workdir, name, script_text, extra_fw_
     return output, parse_results(output)
 
 
-def check(mode, luks, disk, vars_path, workdir, label):
-    """install.py's checks; keeps each run's serial log under its own name."""
+def check(mode, luks, disk, vars_path, workdir, label, differences=None):
+    """install.py's checks, with what the NVIDIA packages change; keeps each
+    run's serial log under its own name."""
     try:
         got = install.boot_and_check(mode, luks, disk, vars_path, workdir)
     except (TimeoutError, RuntimeError) as err:
@@ -137,7 +140,7 @@ def check(mode, luks, disk, vars_path, workdir, label):
         log = os.path.join(workdir, "serial-boot.log")
         if os.path.exists(log):
             os.replace(log, os.path.join(workdir, f"serial-boot-{label}.log"))
-    want = install.expected(mode, luks)
+    want = install.expected(mode, luks) | (differences or {})
     return [f"{label}: {k}: got {got.get(k)!r}, want {v!r}" for k, v in want.items() if got.get(k) != v]
 
 
@@ -191,7 +194,10 @@ def main():
     if problems:
         print(output)
     else:
-        problems += check(mode, luks, disk, vars_path, workdir, "installed")
+        # DEC-041: no hybrid sleep with NVIDIA's driver, so UPower hibernates
+        # at critical battery instead.
+        problems += check(mode, luks, disk, vars_path, workdir, "installed",
+                          {"HYBRID_SLEEP": "no", "UPOWER_CRITICAL": "Hibernate"})
 
     if not problems:
         try:

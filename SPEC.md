@@ -531,6 +531,12 @@ so it most likely waits for Freia to become stable. The options:
 - **T1, autologin once per boot:** only the first tty1 login of a boot is automatic; later ones ask for the password (DEC-042). Logging out now returns to a login prompt.
 - **T2, X's error output:** `tekne-startx.sh` keeps `startx`'s output in `~/.local/state/tekne/startx.log`, so an XLibre abort leaves its reason for an upstream report.
 
+**At the S4 cutoff (2026-10-23):** no hard hang since 2026-10-17; the kernel logs hold no stuck tasks, lockups or crashes (`copyq` crashed twice on its own). But they showed that the critical-battery hybrid sleep failed on 2026-10-20 and the session was lost, and tests by hand found why: with NVIDIA's driver, any return from a hibernation without a fresh boot leaves the driver broken until a power-off (DEC-041). After days of uptime, a hibernation also failed for lack of memory to build the image.
+- **V1, no hybrid sleep with NVIDIA's driver:** `tekne-nvidia` ships an elogind drop-in with `AllowHybridSleep=no`, so UPower hibernates at critical battery (DEC-041, DEC-017).
+- **V2, upstream:** the driver bug is reported to NVIDIA.
+- **V3, known limitations:** a hibernation can fail for lack of memory after days of uptime, and with NVIDIA's driver that leaves the laptop unable to suspend until a power-off. Investigated in 0.4.
+- **V4:** 0.3-rc5 with V1, then 0.3 after its laptop check, with no new waiting period.
+
 ### 9.7 Phases and acceptance criteria
 Phase numbers continue from §8.
 
@@ -584,6 +590,9 @@ Phase numbers continue from §8.
 - ✅ No hard hang recurs on the laptop by 2026-10-23 (S4), or one that does is explained by its kernel log.
 - For 0.3-rc3: `tekne-autologin-getty` and the matching `tekne-autologin` (T1), and `startx.log` (T2), with DEC-042 and the docs. `v0.3-rc3` was released on 2026-10-18 from `dd9a91a` (CI run 39146876481; publish run 39155572718), and `excalibur-rc` serves all six packages at `0.3~rc3`. `release.py v0.3-rc3` passed. `VERSION` is now `0.3-rc4`.
 - ✅ `install.py`'s LUKS cases check that the boot's automatic login was used once and that `startx.log` exists. Its broken-X step checks that logging tty1 out brings a password prompt, not another automatic login.
+- For 0.3-rc5: `tekne-nvidia`'s `/etc/elogind/sleep.conf.d/tekne-nvidia.conf` (V1), with DEC-041, DEC-017 and the docs.
+- ✅ `nvidia.py` checks that with the packages installed, elogind reports no hybrid sleep and UPower's critical action is `Hibernate`, and that purging restores hybrid sleep and `HybridSleep`. Every other installed system reports hybrid sleep available.
+- ✅ (maintainer) On the laptop with 0.3-rc5, `loginctl hybrid-sleep` is refused, `upower --dump` shows `critical-action: Hibernate`, and a hibernation from a fresh boot resumes, with suspend working afterwards.
 - ✅ (maintainer) On the laptop with 0.3-rc3 and `tekne-autologin on`, logging out of the desktop returns to a password prompt, and a night with the lid closed on battery ends with the session intact. Passed 2026-10-18: the boot's automatic login, then a password prompt after logout; and the same X session survived the 7 suspends of the lid test, with no abort in `startx.log`.
 - For 0.3-rc4: the "Tekne live (console, no desktop)" GRUB entry (`nomodeset tekne.console`) and its live-config component `0162-tekne-console`, which keeps tty1 on a console and points to `sudo tekne-install`. live-config's `0140-xinit` is turned off (`nocomponents=xinit`): its endless `startx` loop on tty1 ran after `tekne-startx.sh`, so neither `tekne.console` nor DEC-042's guard could stop a broken X restarting in the live session. The 0.3-rc3 live desktop didn't start on the maintainer's NVIDIA-only desktop, and the other entries gave no way to the installer without it. The installer removes the component; docs/installer.md, docs/desktop-stack.md, docs/testing.md and docs/building.md are updated.
 - ✅ `live-boot.py` boots the console entry on BIOS and UEFI, reached and edited through GRUB's menu keys to add the serial console, and checks that `nomodeset` and `tekne.console` are on the command line, live-config's xinit snippet is absent, tty1's autologin shell runs with no X, the login message names `sudo tekne-install`, and the installer is there. `install.py` checks that the component is gone from installed systems.

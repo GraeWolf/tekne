@@ -167,6 +167,9 @@ minutes and needs about 1 GiB, then sets it up for Tekne. Reboot afterwards.
 - Each new kernel from `apt upgrade` gets the module rebuilt by DKMS. Tekne's
   build checks that NVIDIA's module builds for every kernel it ships.
 - Suspend and hibernate work through the driver itself, with no extra setup.
+  Hybrid sleep is turned off (`loginctl hybrid-sleep` is refused), because the
+  driver doesn't survive returning from a hibernation without a fresh boot; at
+  critical battery the laptop hibernates instead (DEC-041).
 - Known limitations: on AC power the GPU stays on, because TLP keeps devices
   powered when plugged in. Outputs wired to the NVIDIA GPU (often HDMI) don't
   work yet; outputs on the integrated GPU do.

@@ -23,6 +23,9 @@ Description: NVIDIA's display driver, set up for Tekne (opt-in)
  the desktop stays on the integrated GPU, the NVIDIA GPU powers off when
  idle, and tekne-prime-run runs a program on it (PRIME render offload).
  Suspend and hibernate use the driver's kernel notifiers, with no systemd.
+ Hybrid sleep is turned off, because the driver doesn't survive returning
+ from a hibernation without a fresh boot; at critical battery, UPower then
+ hibernates instead.
  .
  Open kernel modules only: Turing (GTX 16xx, RTX 20xx) and newer GPUs.
  "sudo tekne-nvidia-remove" removes it and the driver, back to nouveau.
