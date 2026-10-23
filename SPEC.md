@@ -533,7 +533,7 @@ so it most likely waits for Freia to become stable. The options:
 
 **At the S4 cutoff (2026-10-23):** no hard hang since 2026-10-17; the kernel logs hold no stuck tasks, lockups or crashes (`copyq` crashed twice on its own). But they showed that the critical-battery hybrid sleep failed on 2026-10-20 and the session was lost, and tests by hand found why: with NVIDIA's driver, any return from a hibernation without a fresh boot leaves the driver broken until a power-off (DEC-041). After days of uptime, a hibernation also failed for lack of memory to build the image.
 - **V1, no hybrid sleep with NVIDIA's driver:** `tekne-nvidia` ships an elogind drop-in with `AllowHybridSleep=no`, so UPower hibernates at critical battery (DEC-041, DEC-017).
-- **V2, upstream:** the driver bug is reported to NVIDIA.
+- **V2, upstream:** a report of the driver bug for NVIDIA's `open-gpu-kernel-modules` is drafted; the maintainer will post it later.
 - **V3, known limitations:** a hibernation can fail for lack of memory after days of uptime, and with NVIDIA's driver that leaves the laptop unable to suspend until a power-off. Investigated in 0.4.
 - **V4:** 0.3-rc5 with V1, then 0.3 after its laptop check, with no new waiting period.
 
