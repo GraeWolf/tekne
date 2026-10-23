@@ -688,14 +688,18 @@ Phase numbers continue from §9.7.
   modesetting permission" as root; not a permissions problem; no DEC-045 exception.
 - ✅ Modesetting-DDX trial on the desktop (2026-10-22), recorded in DEC-041: rootless
   X on `modesetting` over `nvidia-drm` drives the monitors.
-- Package that path (U1) in `tekne-nvidia`: `00-tekne-nvidia-modesetting.conf` and
+- ✅ Package that path (U1) in `tekne-nvidia` (2026-10-22): `00-tekne-nvidia-modesetting.conf` and
   divert of NVIDIA's OutputClass snippets (DEC-041 Design), with docs/testing.md.
-  Same path on every machine (DEC-047); confirm laptop offload and HDMI after.
+  Same path on every machine (DEC-047).
 - ✅ `tests/smoke/nvidia.py` still passes: QEMU has no NVIDIA GPU, so installing the
   packages must change nothing there.
 - ✅ (maintainer, desktop) With `tekne-nvidia`, X runs on the RTX 4060 Ti and drives
   every monitor. Suspend and hibernate resume. Removing it returns to `fbdev`.
-- ✅ (maintainer, laptop) The HDMI port works, or DEC-041 records why not.
+  Passed 2026-10-22: HDMI-1 at 2560×1440 and HDMI-2 at 1920×1080, suspend and
+  hibernate resumed the same session, and `tekne-nvidia-remove` returned to `fbdev`
+  with `nouveau` still blacklisted.
+- (maintainer, laptop) Offload and the HDMI port work after the modesetting path,
+  or DEC-041 records why not. Not checked yet.
 - (maintainer, desktop) The `nouveau` hang is reported upstream with a boot log (U5).
   It doesn't block the phase.
 

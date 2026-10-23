@@ -92,9 +92,13 @@ or `modprobe.blacklist=nouveau` to the kernel command line (a file in
 `/etc/default/grub.d/`, then `sudo update-grub`) and install
 `xserver-xlibre-video-fbdev`.
 
-`tekne-nvidia` doesn't help yet: outputs wired to the NVIDIA GPU don't work with
-it (DEC-041, known limitations). Note `lspci -nn`, `~/.local/state/tekne/startx.log`
-and `~/.local/state/xorg/Xorg.0.log` when reporting.
+`tekne-nvidia` drives those outputs with XLibre's `modesetting` driver over
+`nvidia-drm` (DEC-041). Install it the way [customizing.md](customizing.md)
+describes, then reboot. On the development desktop (RTX 4060 Ti) this drives
+every connected monitor. `sudo tekne-nvidia-remove` and a reboot return to the
+`fbdev` desktop above; keep `nouveau` blacklisted, because loading it hangs
+this machine's boot. Note `lspci -nn`, `~/.local/state/tekne/startx.log` and
+`~/.local/state/xorg/Xorg.0.log` when reporting.
 
 ### NVIDIA's driver (`tekne-nvidia`)
 
@@ -123,6 +127,8 @@ in QEMU (`tests/smoke/nvidia.py`), but only real hardware can check the driver:
    offloads after the modesetting path.
 7. **Back to nouveau:** `sudo tekne-nvidia-remove`, then reboot. `nouveau` is
    loaded again, and `dpkg -l '*nvidia*'` lists only `firmware-nvidia-graphics`.
+   On a machine that blacklists `nouveau` because it hangs the boot, the same
+   removal returns to the `fbdev` desktop in the section above.
 
 ### Autologin after the LUKS passphrase
 
