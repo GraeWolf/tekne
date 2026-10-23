@@ -58,8 +58,18 @@ apt-get update >/tmp/nv/update1.log 2>&1 && echo APT_UPDATE=ok || { echo APT_UPD
 apt-get install -y tekne-nvidia-repo >/tmp/nv/repo.log 2>&1 \
 	&& echo REPO_INSTALL=ok || { echo REPO_INSTALL=failed; tail -n 20 /tmp/nv/repo.log; }
 apt-get update >/tmp/nv/update2.log 2>&1 && echo NVIDIA_UPDATE=ok || { echo NVIDIA_UPDATE=failed; tail -n 20 /tmp/nv/update2.log; }
-apt-get install -y tekne-nvidia >/tmp/nv/install.log 2>&1 \
-	&& echo NVIDIA_INSTALL=ok || { echo NVIDIA_INSTALL=failed; tail -n 40 /tmp/nv/install.log; }
+# The install's own output stays in the log. Print its last line every 30s
+# until apt exits: a hang otherwise leaves that log inside the VM
+# (CI run 39880232788 sat here for the whole 45 minute budget).
+stdbuf -oL -eL apt-get install -y tekne-nvidia >/tmp/nv/install.log 2>&1 &
+apt_pid=$!
+while kill -0 "$apt_pid" 2>/dev/null; do
+	line=$(tail -n 1 /tmp/nv/install.log 2>/dev/null | tr '\r\n=' '   ')
+	echo "--- install: ${line:-waiting}"
+	sleep 30
+done
+if wait "$apt_pid"; then echo NVIDIA_INSTALL=ok
+else echo NVIDIA_INSTALL=failed; tail -n 40 /tmp/nv/install.log; fi
 dpkg-query -W -f '${Package}\n' | sort > /tmp/nv/after
 echo "NEW_PACKAGES=$(comm -13 /tmp/nv/before /tmp/nv/after | wc -l)"
 echo "NEW_SYSTEMD=$(comm -13 /tmp/nv/before /tmp/nv/after | grep -c systemd)"
