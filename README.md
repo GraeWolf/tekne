@@ -5,20 +5,22 @@ keyboard-driven installer. See [SPEC.md](SPEC.md) for what's planned and
 [DECISIONS.md](DECISIONS.md) for why. Licensed GPL-3.0-or-later; the artwork
 in `branding/` is CC-BY-SA-4.0.
 
-**Status:** [Tekne 0.2](https://github.com/GraeWolf/tekne/releases/tag/v0.2)
+**Status:** [Tekne 0.3](https://github.com/GraeWolf/tekne/releases/tag/v0.3)
 is released: download the ISO, its checksum and build-info from the release
 page. The live ISO boots to the herbstluftwm desktop on BIOS and UEFI,
 installs with `sudo tekne-install` (optionally with LUKS, with hibernation),
 and an installed Tekne updates with `apt`, its own packages included. CI builds
 and tests every change.
 
-Tekne 0.3 (SPEC §9) makes a hybrid-graphics laptop a daily driver. Its fifth
-release candidate, [0.3-rc5](https://github.com/GraeWolf/tekne/releases/tag/v0.3-rc5),
-is out for testing (see "Release candidates" below). It brings:
+Tekne 0.3 (SPEC §9) makes a hybrid-graphics laptop a daily driver:
 - NVIDIA's proprietary driver, opt-in, with PRIME offload
 - one passphrase from power-on to the desktop on encrypted installs
-- an icon bar and floating pop-ups
-- shell defaults
+- a laptop that sleeps without draining its battery, and saves its session at a
+  critical battery
+- an icon bar, floating pop-ups and shell defaults
+
+Tekne 0.4 (SPEC §10) is next: one Tekne on two machines, the laptop and a
+desktop whose NVIDIA RTX 4060 Ti drives its monitors.
 
 | Guide | For |
 |---|---|

@@ -1,12 +1,97 @@
 # Changelog
 
-## Unreleased
+## 0.3 (2026-10-24)
 
-### Build
-- The build fetches Devuan's packages through `pkgmaster.devuan.org`, the
-  master archive Devuan's mirrors sync from, so one lagging mirror in the
-  `deb.devuan.org` round robin can't break it. Installed systems still use
-  `deb.devuan.org` (DEC-003).
+Tekne 0.3 makes a hybrid-graphics laptop a daily driver (SPEC §9).
+- **NVIDIA's own driver,** as an opt-in install, with PRIME offload and the idle
+  GPU powered off.
+- **One passphrase to the desktop:** encrypted installs can go from the LUKS
+  passphrase straight to the desktop.
+- **Suspend, hibernate and resume are more reliable** on every machine, and a
+  laptop left asleep no longer drains its battery or loses its session at a
+  flat battery.
+- **Less rough everyday use:** an icon bar, floating pop-ups, and shell defaults.
+
+Tested in CI on every build (BIOS and UEFI, plain and LUKS, hibernation
+included), and on two machines: the development laptop, an ASUS ROG Zephyrus
+G15 (AMD and NVIDIA RTX 3060, kernel 7.2.9), and a desktop with an NVIDIA RTX
+4060 Ti, which runs on X's `fbdev` driver.
+
+**Upgrading from 0.2:**
+
+```sh
+sudo apt update && sudo apt upgrade
+```
+
+Use `apt`, not `apt-get upgrade`: `tekne-desktop` gains new dependencies,
+which `apt-get upgrade` would hold it back for. Then, optionally:
+- **Shell defaults** for users created before 0.3: add this line to
+  `~/.bash_aliases`:
+  `[ -r /usr/share/tekne/bash/tekne.bashrc ] && . /usr/share/tekne/bash/tekne.bashrc`
+- **Autologin** on an encrypted install: `sudo tekne-autologin on`, then reboot.
+- **NVIDIA's driver:** the three commands in
+  [docs/customizing.md](https://github.com/GraeWolf/tekne/blob/v0.3/docs/customizing.md#nvidia-graphics), "NVIDIA graphics".
+
+**From a 0.3 release candidate:** `sudo apt update && sudo apt upgrade`. If you
+turned autologin on with 0.3-rc1 or rc2, run `sudo tekne-autologin on` once
+more; `tekne-autologin status` says whether you need to. Systems that follow
+`excalibur-rc` also get later candidates; to follow releases only, change
+`Suites: excalibur-rc` back to `Suites: excalibur` in
+`/etc/apt/sources.list.d/tekne.sources`.
+
+### What's new
+- **NVIDIA's driver, opt-in** (DEC-041): `tekne-nvidia-repo` adds NVIDIA's
+  repository, pinned to the display driver, and `tekne-nvidia` installs the
+  driver (615, open kernel modules, Turing and newer) with PRIME offload
+  (`tekne-prime-run`), power-off of the idle GPU, and suspend and hibernate
+  without systemd. `sudo tekne-nvidia-remove` goes back to `nouveau`.
+- **Autologin after the LUKS passphrase** (DEC-042): the installer asks
+  (default yes), and existing installs run `sudo tekne-autologin on`. Only the
+  first login of each boot is automatic. The lock screen, `sudo`, tty2–6 and
+  later logins still ask for the password, and the keyring asks for it once
+  per session.
+- **Battery:** AC adapters no longer wake a sleeping laptop (DEC-046), and
+  UPower saves the session to disk at 2% battery (DEC-017).
+- **Resume:** X takes its seat from elogind (DEC-045), ASUS N-KEY keyboards come
+  back after deep sleep (DEC-044), and TLP's sleep hook runs (DEC-025).
+- **Desktops without a usable GPU driver:** a console boot entry for
+  installing, X's `fbdev` driver, and the installer keeping `nomodeset`.
+- **Desktop polish:** the bar shows all nine tags, a centred clock and Nerd
+  Font icons (DEC-043); `nmtui`, Blueman and Pavucontrol float; `cat` is
+  `batcat` and fastfetch greets new terminals; `ssh-agent` keeps a key once
+  unlocked; XDG user directories exist.
+- **Packages:** `bat`, `fastfetch`, `ffmpeg`, `imagemagick`, `openssh-client`,
+  `upower`, `xserver-xlibre-video-fbdev`.
+
+**Known limitations:**
+- With NVIDIA's driver, monitors on the NVIDIA GPU (HDMI on the development
+  laptop, every output on the desktop) don't work yet (DEC-041); that's 0.4's
+  work. External monitors on the laptop's AMD ports haven't been tested.
+- With NVIDIA's driver, the GPU stays powered on AC, and hybrid sleep is off
+  (UPower hibernates instead). After days of uptime, a hibernation can fail
+  for lack of memory, and the laptop then can't suspend until it's powered
+  off; rebooting every few days avoids it.
+- On the development laptop, a closed lid still wakes the system about every
+  20 minutes for ~25 seconds (DEC-046), and XLibre occasionally aborts as the
+  laptop suspends; the session is then lost, and tty1 asks for the password.
+- Two hard hangs in 0.3's first week (2026-10-10) are unexplained; none has
+  recurred.
+- Secure Boot must be off (DEC-016), and NVIDIA's DKMS module is unsigned.
+- The installer takes a whole disk: no dual-boot or manual partitioning (DEC-005).
+- The artwork is a placeholder, and the console login greeting still names
+  Devuan (DEC-035).
+
+### Changes since 0.3-rc1
+- **0.3-rc2:** AC adapters don't wake the system; `upower` for critical battery.
+- **0.3-rc3:** autologin only for a boot's first login, after an XLibre abort
+  at suspend let autologin start an unlocked desktop mid-suspend; X's error
+  output kept in `startx.log`.
+- **0.3-rc4:** the console boot entry, X's `fbdev` driver, the installer
+  keeping `nomodeset`, and X never running as root.
+- **0.3-rc5:** no hybrid sleep with NVIDIA's driver.
+- **Since 0.3-rc5:** the build fetches Devuan's packages through
+  `pkgmaster.devuan.org`, so one lagging mirror can't break it; installed
+  systems still use `deb.devuan.org` (DEC-003).
 
 ## 0.3-rc5 (2026-10-24)
 
