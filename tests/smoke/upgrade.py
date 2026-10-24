@@ -19,6 +19,8 @@ Then:
      the host serves over HTTP (the VM reaches it at 10.0.2.2), and at the
      build's throwaway test key. Only the URL and the key differ from what
      installed systems use: the pin and the rest of the source are shipped.
+     For the upgrade, Devuan's sources go through pkgmaster.devuan.org, as
+     the build's do (DEC-003); sources.list is put back afterwards.
   4. apt-get update, then upgrade the way "apt upgrade" does (new
      dependencies allowed), from every source the system has: Devuan,
      backports, Brave and XLibre too.
@@ -79,6 +81,12 @@ cp $fw/test-key/raw /etc/apt/keyrings/tekne-test.gpg
 chmod 644 /etc/apt/keyrings/tekne-test.gpg
 sed -i -e 's|^URIs:.*|URIs: http://10.0.2.2:@PORT@/repo/|' \
 	-e 's|^Signed-By:.*|Signed-By: /etc/apt/keyrings/tekne-test.gpg|' /etc/apt/sources.list.d/tekne.sources
+# Devuan's packages through pkgmaster.devuan.org, as the build gets them
+# (DEC-003), so a lagging mirror in deb.devuan.org's round robin can't fail
+# the test. sources.list is put back after the upgrade, before installed-
+# checks.sh checks it.
+cp /etc/apt/sources.list /tmp/up/sources.list
+sed -i 's|http://deb\.devuan\.org/merged/|http://pkgmaster.devuan.org/merged/|' /etc/apt/sources.list
 apt-get update >/tmp/up/update.log 2>&1 && echo APT_UPDATE=ok || { echo APT_UPDATE=failed; tail -n 20 /tmp/up/update.log; }
 # apt names list files after the URL: "10.0.2.2:PORT_repo_dists_excalibur_...".
 echo "TEKNE_INDEX=$(ls /var/lib/apt/lists/ | grep -cE '^10\.0\.2\.2(:|%3a)[0-9]+_repo_dists_excalibur_')"
@@ -86,6 +94,7 @@ DEBIAN_FRONTEND=noninteractive apt-get -y --with-new-pkgs \
 	-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade >/tmp/up/upgrade.log 2>&1 \
 	&& echo APT_UPGRADE=ok || { echo APT_UPGRADE=failed; tail -n 30 /tmp/up/upgrade.log; dmesg | tail -n 20; free -m; }
 echo "UPGRADED_PACKAGES=$(grep -c '^Setting up ' /tmp/up/upgrade.log)"
+cp /tmp/up/sources.list /etc/apt/sources.list
 dpkg-query -W -f 'AFTER_${Package}=${Version}\n' @PKGS@
 echo "BASE_FILES=$(dpkg-query -W -f '${Version}' base-files)"
 # DEC-042's step for existing encrypted installs, like the laptop. (A kept
