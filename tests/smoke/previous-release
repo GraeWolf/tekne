@@ -4,6 +4,6 @@
 # three lines after each final release is published (docs/building.md,
 # "Release"); SHA256 is in the release's .sha256 asset and in its
 # build-info.txt (iso_sha256).
-TAG=v0.2
-ISO=tekne-0.2-amd64.iso
-SHA256=1d23b3cc78f68a40136bf75c6467028af3108467b2c5c4cb698966cfb82036af
+TAG=v0.3
+ISO=tekne-0.3-amd64.iso
+SHA256=7e633b2f72a6040748aa740ac5d655ec53c746aa56aa8ee1491129851ebc8c4b

@@ -353,7 +353,8 @@ Phase numbers continue from §7.
 > decisions are DEC-041 (NVIDIA), DEC-042 (autologin) and DEC-043 (the symbols
 > font). On 2026-10-05, after the Phase 11 spike, the maintainer redesigned DEC-041 and
 > added DEC-044 (hardware quirks) and DEC-045 (X's seat backend); answers in §9.6.
-> Phases 12, 13 and 14 are complete. Phase 11 stays open for the HDMI test, which needs an external monitor.
+> [Tekne 0.3](https://github.com/GraeWolf/tekne/releases/tag/v0.3) was released on 2026-10-24.
+> Phases 12–15 are complete. Phase 11 stays open for the HDMI test, which moved to 0.4's Phase 17.
 
 ### 9.1 Theme: the hybrid-graphics laptop as a daily driver
 
@@ -583,7 +584,7 @@ Phase numbers continue from §8.
 - ✅ With a deliberately broken X configuration, tty1 starts X at most twice and then stays on a console shell. tty2 still offers a normal login.
 - ✅ (maintainer) On the laptop (0.2, upgraded through apt), `tekne-autologin on` gives one passphrase from power-on to desktop. Passed 2026-10-06.
 
-**Phase 15: Docs and the 0.3 release**. In progress (answers R1–R3 in §9.6). `v0.3-rc1` was released on 2026-10-06 from `1017870`: CI run 37529245021 passed every test on the tag and made the draft, and the maintainer published it and approved the repository publish (run 37536020498). `excalibur-rc` serves all six packages at `0.3~rc1`, signed by subkey `82C3…`, and `excalibur` still serves 0.2. `tests/smoke/release.py v0.3-rc1` passed: a fresh install from the published ISO has no `tekne-*` updates waiting, and the repository offers all six `.deb`s at `0.3~rc1`. The release notes' one relative link was replaced by a full URL in the draft before publishing, and in the CHANGELOG. `VERSION` is now `0.3-rc2`. Dogfooding found a suspend loop and two hangs (answers S1–S4 in §9.6), so 0.3-rc2 comes first.
+**Phase 15: Docs and the 0.3 release**. ✔ Complete (2026-10-24; answers R1–R3, S1–S4, T1–T2, V1–V4 and W1 in §9.6). `v0.3-rc1` was released on 2026-10-06 from `1017870`: CI run 37529245021 passed every test on the tag and made the draft, and the maintainer published it and approved the repository publish (run 37536020498). `excalibur-rc` serves all six packages at `0.3~rc1`, signed by subkey `82C3…`, and `excalibur` still serves 0.2. `tests/smoke/release.py v0.3-rc1` passed: a fresh install from the published ISO has no `tekne-*` updates waiting, and the repository offers all six `.deb`s at `0.3~rc1`. The release notes' one relative link was replaced by a full URL in the draft before publishing, and in the CHANGELOG. `VERSION` is now `0.3-rc2`. Dogfooding found a suspend loop and two hangs (answers S1–S4 in §9.6), so 0.3-rc2 comes first.
 - README, `docs/customizing.md` (the shell snippet line for existing users, NVIDIA and autologin), docs/testing.md, and the CHANGELOG.
 - ✅ `v0.3-rc1` is released through CI (DEC-039) and published to `excalibur-rc`. The laptop upgrades to it with `apt upgrade` and is dogfooded. Done 2026-10-06.
 - For 0.3-rc2: `tekne-config`'s `tekne-no-ac-wake` sleep hook (DEC-046) and `upower` in `tekne-desktop` (DEC-017), with docs/desktop-stack.md, docs/testing.md and the CHANGELOG.
@@ -605,7 +606,7 @@ Phase numbers continue from §8.
 - For 0.3-rc4, answers of 2026-10-21: `xserver-xlibre-video-fbdev` in `tekne-desktop` (DEC-025), and the installer keeps the live session's `nomodeset` in `/etc/default/grub.d/tekne-nomodeset.cfg`, shown in its summary and final message, with docs/installer.md, docs/testing.md and docs/desktop-stack.md. Then (Q4 a): `tekne-config` sets `needs_root_rights=no` in `Xwrapper.config`, because CI found X running as root on `fbdev` (DEC-045). `v0.3-rc4` was released on 2026-10-22 from `4fe201c` (CI run 39704262608; publish run 39710966856), and `excalibur-rc` serves all six packages at `0.3~rc4`. `release.py v0.3-rc4` passed: a fresh install from the published ISO has no `tekne-*` updates waiting. `VERSION` is now `0.3-rc5` (DEC-032).
 - ✅ `live-boot.py` boots "safe graphics" on UEFI and passes the desktop checks there, with X on `fbdev`, rootless like every other live boot. `install.py`'s uefi-plain case asks for `NOMODESET=yes`, and the installed system boots with it from `tekne-nomodeset.cfg`; the other cases have neither. Every installed and upgraded system has `needs_root_rights=no`.
 - ✅ (maintainer) On the desktop with the rc4 packages, the desktop starts on `fbdev`. Passed 2026-10-21 with the equivalent by hand: `modprobe.blacklist=nouveau` in a file in `/etc/default/grub.d/` and `xserver-xlibre-video-fbdev` installed with apt. Rechecked on 2026-10-22 after the upgrade to rc4 (kernel 7.2.9), which added `needs_root_rights=no`: the desktop still starts on `fbdev`, and X runs as the user, not root.
-- ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade.
+- ✅ `v0.3` is released and published to `excalibur`. CI's upgrade test from v0.2 passes, and a fresh 0.3 install has no `tekne-*` packages to upgrade. Released on 2026-10-24 from `ef85ec5` (CI run 40131607944, every test passed on the tag; publish run 40138514994). `excalibur` serves all six packages at `0.3`, signed by subkey `82C3…`. `release.py v0.3` passed. `tests/smoke/previous-release` now points at v0.3, so CI's upgrade test starts from it, and `VERSION` is `0.4-rc1` (DEC-032). Before the tag, CI on `master` failed twice on a lagging Devuan mirror: W1 moved the build to `pkgmaster.devuan.org`, and `upgrade.py` upgrades through it too (`ef85ec5`).
 
 ## 10. Tekne 0.4
 
