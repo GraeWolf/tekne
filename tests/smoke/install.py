@@ -73,12 +73,10 @@ ANSWERS = {
 BEGIN, END = "__TEKNE" + "_BEGIN__", "__TEKNE" + "_END__"
 
 
-def expected(mode, luks, upgraded=False, autologin=False, nomodeset=False):
-    # upgrade.py's user was made by the previous release, before /etc/skel had
-    # .bash_aliases and before the installer made XDG directories. With
-    # autologin, tekne-session's first X login creates the directories.
-    per_user = ({"XDG_DIRS": "present" if autologin else "missing", "CAT_ALIAS": "none", "FASTFETCH_LOGO": "none"}
-                if upgraded else {"XDG_DIRS": "present", "CAT_ALIAS": "batcat", "FASTFETCH_LOGO": "tekne"})
+def expected(mode, luks, autologin=False, nomodeset=False):
+    # Since 0.3, /etc/skel has .bash_aliases and the installer makes XDG
+    # directories, so upgrade.py's user (made by 0.3 or later) has them too.
+    per_user = {"XDG_DIRS": "present", "CAT_ALIAS": "batcat", "FASTFETCH_LOGO": "tekne"}
     # DEC-042. The login keyring must exist before the boot's password login:
     # the installer made it (or, after an upgrade, the system's earlier use did).
     auto = ({"TTY1_X": "running", "SEAT_LOG": "logind", "LOCK_SCREEN": "asks for the password",
