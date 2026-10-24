@@ -2,7 +2,13 @@
 # Every lb config flag for Tekne (DEC-003). Run by live-build; never type flags by hand.
 set -e
 
+# The image, and every system installed from it, uses Devuan's round robin of
+# mirrors (the binary mirrors below). The build itself fetches through
+# pkgmaster.devuan.org, the master archive the mirrors sync from, which sends
+# Debian's packages on to deb.debian.org: one lagging mirror in the round robin
+# (a Debian package missing for two days) broke every CI build (DEC-036).
 DEVUAN="http://deb.devuan.org/merged/"
+BUILD_MIRROR="http://pkgmaster.devuan.org/merged/"
 # The Tokyo Night console palette and loglevel=3, as on installed systems
 # (tekne-branding: /etc/default/grub.d/tekne-console.cfg, DEC-037).
 # nocomponents=xinit runs every live-config component but 0140-xinit: its
@@ -18,14 +24,14 @@ lb config noauto \
 	--parent-distribution excalibur \
 	--archive-areas "main contrib non-free non-free-firmware" \
 	--parent-archive-areas "main contrib non-free non-free-firmware" \
-	--mirror-bootstrap "${DEVUAN}" \
-	--mirror-chroot "${DEVUAN}" \
-	--mirror-chroot-security "${DEVUAN}" \
+	--mirror-bootstrap "${BUILD_MIRROR}" \
+	--mirror-chroot "${BUILD_MIRROR}" \
+	--mirror-chroot-security "${BUILD_MIRROR}" \
 	--mirror-binary "${DEVUAN}" \
 	--mirror-binary-security "${DEVUAN}" \
-	--parent-mirror-bootstrap "${DEVUAN}" \
-	--parent-mirror-chroot "${DEVUAN}" \
-	--parent-mirror-chroot-security "${DEVUAN}" \
+	--parent-mirror-bootstrap "${BUILD_MIRROR}" \
+	--parent-mirror-chroot "${BUILD_MIRROR}" \
+	--parent-mirror-chroot-security "${BUILD_MIRROR}" \
 	--parent-mirror-binary "${DEVUAN}" \
 	--parent-mirror-binary-security "${DEVUAN}" \
 	--keyring-packages devuan-keyring \

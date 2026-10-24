@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Build
+- The build fetches Devuan's packages through `pkgmaster.devuan.org`, the
+  master archive Devuan's mirrors sync from, so one lagging mirror in the
+  `deb.devuan.org` round robin can't break it. Installed systems still use
+  `deb.devuan.org` (DEC-003).
+
 ## 0.3-rc5 (2026-10-24)
 
 ### Fixed

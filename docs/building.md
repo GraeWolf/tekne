@@ -9,7 +9,7 @@ and [DECISIONS.md](../DECISIONS.md).
 
 - A Linux host with root, Podman or Docker, and about 20 GB free. The build
   itself runs in a container, so the host distribution doesn't matter.
-- Network access to Devuan's mirror and the Brave, XLibre and NVIDIA repositories. NVIDIA's is used only for the module check after the image is built (step 6).
+- Network access to Devuan's master archive, `pkgmaster.devuan.org` (and `deb.debian.org`, where it sends Debian's packages), to `deb.devuan.org` for the backports kernel (through `tekne-apt-sources`' own source, with `pkgmaster` as its fallback, DEC-036), and to the Brave, XLibre and NVIDIA repositories. NVIDIA's is used only for the module check after the image is built (step 6).
 - For the tests: QEMU and OVMF, and ideally KVM (`/dev/kvm`).
 
 On Tekne, or any Devuan or Debian host, one command installs all of it

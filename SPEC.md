@@ -44,7 +44,7 @@ In practice this means:
 | Item | Value |
 |---|---|
 | Base | Devuan Excalibur (`excalibur`, `excalibur-updates`, `excalibur-security`) |
-| Mirror | `deb.devuan.org/merged` |
+| Mirror | `deb.devuan.org/merged` on installed systems; the build fetches through `pkgmaster.devuan.org/merged` (DEC-003) |
 | Archive areas | `main contrib non-free non-free-firmware` (see DEC-013) |
 | Init | `sysvinit-core` |
 | Session/seat | `elogind` + `libpam-elogind`, `polkitd` |
@@ -537,6 +537,9 @@ so it most likely waits for Freia to become stable. The options:
 - **V3, known limitations:** a hibernation can fail for lack of memory after days of uptime, and with NVIDIA's driver that leaves the laptop unable to suspend until a power-off. Investigated in 0.4.
 - **V4:** 0.3-rc5 with V1, then 0.3 after its laptop check, with no new waiting period.
 
+**Before the 0.3 tag (2026-10-24):** CI kept failing in the build, on a mirror in `deb.devuan.org`'s round robin whose Debian part lacked a `tzdata` update.
+- **W1, the build's mirror:** the build fetches through `pkgmaster.devuan.org`, and the image keeps `deb.devuan.org` (DEC-003). This reverses DEC-036's choice of 2026-10-05.
+
 ### 9.7 Phases and acceptance criteria
 Phase numbers continue from §8.
 
@@ -592,7 +595,9 @@ Phase numbers continue from §8.
 - ✅ `install.py`'s LUKS cases check that the boot's automatic login was used once and that `startx.log` exists. Its broken-X step checks that logging tty1 out brings a password prompt, not another automatic login.
 - For 0.3-rc5: `tekne-nvidia`'s `/etc/elogind/sleep.conf.d/tekne-nvidia.conf` (V1), with DEC-041, DEC-017 and the docs. `v0.3-rc5` was released on 2026-10-24 from `9c02fcd` (CI run 40097588876; publish run 40107000561), and `excalibur-rc` serves all six packages at `0.3~rc5`. `release.py v0.3-rc5` passed. `VERSION` is now `0.3-rc6`. Two earlier CI runs on the branch failed on a Devuan mirror that was mid-sync (a `tzdata` 404, then security indexes of the wrong size), and a third passed the next day.
 - ✅ `nvidia.py` checks that with the packages installed, elogind reports no hybrid sleep and UPower's critical action is `Hibernate`, and that purging restores hybrid sleep and `HybridSleep`. Every other installed system reports hybrid sleep available.
-- ✅ (maintainer) On the laptop with 0.3-rc5, `loginctl hybrid-sleep` is refused, `upower --dump` shows `critical-action: Hibernate`, and a hibernation from a fresh boot resumes, with suspend working afterwards.
+- ✅ (maintainer) On the laptop with 0.3-rc5, `loginctl hybrid-sleep` is refused, `upower --dump` shows `critical-action: Hibernate`, and a hibernation from a fresh boot resumes, with suspend working afterwards. Passed 2026-10-24, after `apt upgrade` to 0.3-rc5, which took over the drop-in installed by hand.
+- For 0.3 (W1): the build fetches through `pkgmaster.devuan.org` (`live-build/auto/config`), with DEC-003, DEC-036 and docs/building.md.
+- ✅ `install.py` checks that every installed and upgraded system's `/etc/apt/sources.list` names `deb.devuan.org` for all three suites, and nothing under `/etc/apt` names `pkgmaster`.
 - ✅ (maintainer) On the laptop with 0.3-rc3 and `tekne-autologin on`, logging out of the desktop returns to a password prompt, and a night with the lid closed on battery ends with the session intact. Passed 2026-10-18: the boot's automatic login, then a password prompt after logout; and the same X session survived the 7 suspends of the lid test, with no abort in `startx.log`.
 - For 0.3-rc4: the "Tekne live (console, no desktop)" GRUB entry (`nomodeset tekne.console`) and its live-config component `0162-tekne-console`, which keeps tty1 on a console and points to `sudo tekne-install`. live-config's `0140-xinit` is turned off (`nocomponents=xinit`): its endless `startx` loop on tty1 ran after `tekne-startx.sh`, so neither `tekne.console` nor DEC-042's guard could stop a broken X restarting in the live session. The 0.3-rc3 live desktop didn't start on the maintainer's NVIDIA-only desktop, and the other entries gave no way to the installer without it. The installer removes the component; docs/installer.md, docs/desktop-stack.md, docs/testing.md and docs/building.md are updated.
 - ✅ `live-boot.py` boots the console entry on BIOS and UEFI, reached and edited through GRUB's menu keys to add the serial console, and checks that `nomodeset` and `tekne.console` are on the command line, live-config's xinit snippet is absent, tty1's autologin shell runs with no X, the login message names `sudo tekne-install`, and the installer is there. `install.py` checks that the component is gone from installed systems.

@@ -44,6 +44,11 @@ esac
 # DEC-040: Tekne's own repository is configured: its source, pin and key.
 echo "TEKNE_REPO=$([ -f /etc/apt/sources.list.d/tekne.sources ] && [ -f /etc/apt/preferences.d/tekne.pref ] \
 	&& [ -f /usr/share/tekne/keyrings/tekne.gpg ] && echo configured || echo missing)"
+# DEC-036: the build fetches through pkgmaster.devuan.org, but installed
+# systems use Devuan's round robin, for each of the three suites.
+suites="$(awk '$1 == "deb" && $2 == "http://deb.devuan.org/merged/" { print $3 }' /etc/apt/sources.list | sort | tr '\n' ' ')"
+echo "APT_MIRROR=$([ "${suites}" = "excalibur excalibur-security excalibur-updates " ] \
+	&& ! grep -rqs pkgmaster /etc/apt && echo deb.devuan.org || echo "wrong: ${suites:-none}$(grep -rls pkgmaster /etc/apt | tr '\n' ' ')")"
 echo "GRUB_THEME=$([ -f /boot/grub/themes/tekne/theme.txt ] && echo present || echo missing)"
 echo "HOSTNAME=$(cat /etc/hostname)"
 echo "TIMEZONE=$(cat /etc/timezone)"
