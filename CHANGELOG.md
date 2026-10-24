@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3-rc5 (2026-10-24)
 
 ### Fixed
 - **Critical battery with NVIDIA's driver:** the hybrid sleep that UPower runs
