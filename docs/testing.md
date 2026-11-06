@@ -92,8 +92,10 @@ or `modprobe.blacklist=nouveau` to the kernel command line (a file in
 `/etc/default/grub.d/`, then `sudo update-grub`) and install
 `xserver-xlibre-video-fbdev`.
 
-`tekne-nvidia` doesn't help yet: outputs wired to the NVIDIA GPU don't work with
-it (DEC-041, known limitations). Note `lspci -nn`, `~/.local/state/tekne/startx.log`
+`tekne-nvidia` doesn't help yet: NVIDIA's X driver can't drive outputs wired to
+the NVIDIA GPU, even with X as root (DEC-041, known limitations). XLibre's
+`modesetting` driver could, and 0.4 tries it for the laptop's HDMI port (SPEC §10,
+Phase 18). Note `lspci -nn`, `~/.local/state/tekne/startx.log`
 and `~/.local/state/xorg/Xorg.0.log` when reporting.
 
 ### NVIDIA's driver (`tekne-nvidia`)

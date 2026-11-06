@@ -19,8 +19,8 @@ Tekne 0.3 (SPEC §9) makes a hybrid-graphics laptop a daily driver:
   critical battery
 - an icon bar, floating pop-ups and shell defaults
 
-Tekne 0.4 (SPEC §10) is next: one Tekne on two machines, the laptop and a
-desktop whose NVIDIA RTX 4060 Ti drives its monitors.
+Tekne 0.4 (SPEC §10) is next: the laptop's HDMI port, its NVIDIA GPU off on AC,
+steadier sleep and hibernation, a bar on every monitor, and a newer neovim.
 
 | Guide | For |
 |---|---|
