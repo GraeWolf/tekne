@@ -727,7 +727,10 @@ monitor for the laptop, so its multi-monitor check waits for Phase 18's HDMI por
   can't resize the screen. `install.py`'s LUKS cases, where
   autologin starts X, check the same on installed systems, and so does `upgrade.py`.
 - ✅ (maintainer) The laptop's bar is unchanged apart from the brightness module,
-  which follows the brightness keys. `Mod+Shift+r` leaves one bar.
+  which follows the brightness keys. `Mod+Shift+r` leaves one bar. Passed
+  2026-11-06 with `tekne-config` `0.4~rc1~dev131.gfb0805b`: `bar.log` showed one bar
+  on `eDP-1` with `pulseaudio backlight wlan eth battery tray` and no polybar errors;
+  the keys and scrolling changed the brightness, and a reload left one bar.
 - ✅ (maintainer, with Phase 18) With a monitor on the HDMI port, each screen has a
   bar and the tray stays on the laptop's panel; turning it off leaves one.
 
