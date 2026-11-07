@@ -48,6 +48,9 @@ DESKTOP_PROCESSES = [
 # battery, backlight or Wi-Fi, and the tray on the primary monitor.
 BAR_MODULES = "pulseaudio eth tray"
 
+BAR_ERROR_LINES = ('grep -i -E "error|disabling module" ~/.local/state/tekne/bar.log '
+                   '| grep -v -E "tray: |_XEMBED_INFO"')
+
 # Assembled at runtime so the echoed command line never matches the markers.
 BEGIN, END = "__TEKNE" + "_BEGIN__", "__TEKNE" + "_END__"
 CHECK_CMD = (
@@ -79,14 +82,38 @@ CHECK_CMD = (
     'echo "BARS=$(pgrep -u "$(id -u)" -x polybar | wc -l)"; '
     'echo "MONITORS=$(DISPLAY=:0 polybar --list-monitors 2>/dev/null | wc -l)"; '
     'echo "BAR_MODULES=$(sed -n "s/^bar [^:]*: //p" ~/.local/state/tekne/bar.log | head -n 1)"; '
-    'echo "BAR_ERRORS=$(grep -c -i -E "error|disabling module" ~/.local/state/tekne/bar.log)"; '
+    # Not the tray's messages about other programs' icons: in QEMU, blueman's
+    # icon can vanish (no Bluetooth adapter) just after it's embedded.
+    f'echo "BAR_ERRORS=$({BAR_ERROR_LINES} | wc -l)"; '
+    f'{BAR_ERROR_LINES} | head -n 5 | sed "s/^/BAR_ERROR_LINE=/"; '
     'pgrep -u "$(id -u)" -x tekne-bar-watch >/dev/null && echo BAR_WATCH=up || echo BAR_WATCH=down; '
+    '@MONITORS@'
     # ssh-agent keeps a key after its first use (/etc/ssh/ssh_config.d/tekne.conf).
     'ssh -G localhost </dev/null 2>/dev/null | grep -qx "addkeystoagent true" && echo SSH_ADDKEYS=yes || echo SSH_ADDKEYS=no; '
     'sudo nft list chain inet tekne input 2>/dev/null | grep -q "policy drop" && echo FIREWALL=loaded || echo FIREWALL=missing; '
     "sudo ss -H -tuln | awk '{print $5}' | grep -v -E '^(127\\.|\\[::1\\]|\\[::ffff:127\\.)' | sed 's/^/LISTEN=/'; "
     'echo __TEKNE""_END__\n'
 )
+
+# Phase 16 (U2): a second monitor gets its own bar, without the tray, and
+# removing it takes the bar away. QEMU's display has one usable output, so a
+# RandR monitor with no output, right of the real one, stands in. Not with
+# "safe graphics": fbdev can't resize X's screen.
+BAR_COUNT = 'pgrep -u "$(id -u)" -x polybar | wc -l'
+MONITOR_CMD = (
+    'export DISPLAY=:0; '
+    'set -- $(xrandr --query | sed -n "s/.* current \\([0-9]*\\) x \\([0-9]*\\),.*/\\1 \\2/p"); '
+    'xrandr --fb $(($1 + 1024))x$(($2 > 768 ? $2 : 768)) '
+    '&& xrandr --setmonitor TEKNE-TEST 1024/270x768/203+$1+0 none; '
+    f'i=0; while [ $i -lt 20 ] && [ "$({BAR_COUNT})" != 2 ]; do sleep 1; i=$((i+1)); done; '
+    f'echo "BARS_TWO=$({BAR_COUNT})"; '
+    'echo "BAR_SECOND=$(sed -n "s/^bar TEKNE-TEST: //p" ~/.local/state/tekne/bar.log)"; '
+    'xrandr --delmonitor TEKNE-TEST; '
+    f'i=0; while [ $i -lt 20 ] && [ "$({BAR_COUNT})" != 1 ]; do sleep 1; i=$((i+1)); done; '
+    f'echo "BARS_ONE=$({BAR_COUNT})"; '
+)
+MONITOR_EXPECTED = {"BARS_TWO": "2", "BAR_SECOND": "pulseaudio eth", "BARS_ONE": "1"}
+MONITOR_SECS = 45
 
 # GRUB entries the test edits: their place in the menu, counting from 0, and
 # their titles.
@@ -186,17 +213,20 @@ def run(mode, iso, safe=False):
     label = f"{mode} safe" if safe else mode
     log_path = os.path.join(OUT, f"serial-{mode}{'-safe' if safe else ''}.log")
     pick = functools.partial(pick_edited_entry, SAFE_ENTRY) if safe else pick_serial_entry
-    result = boot_and_check(mode, iso, log_path, pick, CHECK_CMD, DESKTOP_TIMEOUT + CMD_TIMEOUT)
+    check_cmd = CHECK_CMD.replace("@MONITORS@", "" if safe else MONITOR_CMD)
+    result = boot_and_check(mode, iso, log_path, pick, check_cmd,
+                            DESKTOP_TIMEOUT + CMD_TIMEOUT + MONITOR_SECS)
     if result is None:
         return False
     boot_secs, output = result
     mode = label
 
     lines = [line.strip() for line in output.splitlines()]
-    results = parse_results(output, skip=("PKG", "LISTEN"))
+    results = parse_results(output, skip=("PKG", "LISTEN", "BAR_ERROR_LINE"))
     packages = [line[4:] for line in lines if line.startswith("PKG=")]
     down = [p for p in DESKTOP_PROCESSES if results.get(f"PROC_{p}") != "up"]
     listening = [line[7:] for line in lines if line.startswith("LISTEN=")]
+    bar_errors = [line[15:] for line in lines if line.startswith("BAR_ERROR_LINE=")]
 
     print(f"[{mode}] reached login prompt in {boot_secs:.0f}s")
     print(f"[{mode}] PID 1: {results.get('PID1')}")
@@ -211,6 +241,12 @@ def run(mode, iso, safe=False):
     print(f"[{mode}] bars: {results.get('BARS')} for {results.get('MONITORS')} monitor(s), "
           f"modules: {results.get('BAR_MODULES')!r}, polybar errors: {results.get('BAR_ERRORS')}, "
           f"watch: {results.get('BAR_WATCH')}")
+    for line in bar_errors:
+        print(f"[{mode}]   polybar: {line}")
+    monitors_ok = safe or all(results.get(k) == v for k, v in MONITOR_EXPECTED.items())
+    if not safe:
+        print(f"[{mode}] second monitor: {results.get('BARS_TWO')} bars, its modules "
+              f"{results.get('BAR_SECOND')!r}; removed: {results.get('BARS_ONE')} bar(s)")
     print(f"[{mode}] listening beyond loopback: {', '.join(listening) or 'none'}")
     ok = (results.get("PID1") == "init" and results.get("RUN_SYSTEMD") == "absent" and not down
           and results.get("FIREWALL") == "loaded" and not listening
@@ -220,7 +256,7 @@ def run(mode, iso, safe=False):
           and results.get("SSH_ADDKEYS") == "yes"
           and results.get("BARS") == results.get("MONITORS") == "1"
           and results.get("BAR_MODULES") == BAR_MODULES and results.get("BAR_ERRORS") == "0"
-          and results.get("BAR_WATCH") == "up")
+          and results.get("BAR_WATCH") == "up" and monitors_ok)
     print(f"{'PASS' if ok else 'FAIL'} [{mode}] (serial log: {log_path})")
     return ok
 

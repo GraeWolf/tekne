@@ -720,7 +720,11 @@ monitor for the laptop, so its multi-monitor check waits for Phase 18's HDMI por
   docs/testing.md.
 - ✅ In QEMU (no battery, no backlight, no Wi-Fi), `live-boot.py` checks that one bar
   runs for the one monitor with `pulseaudio eth tray` on the right, that polybar
-  logs no errors, and that `tekne-bar-watch` runs. `install.py`'s LUKS cases, where
+  logs no errors (its tray's messages about other programs' icons aside), and that
+  `tekne-bar-watch` runs. QEMU's display has one usable output, so a RandR monitor
+  (`xrandr --setmonitor`) stands in for a second one: it gets its own bar, without
+  the tray, and removing it leaves one bar. Not on "safe graphics", whose `fbdev`
+  can't resize the screen. `install.py`'s LUKS cases, where
   autologin starts X, check the same on installed systems, and so does `upgrade.py`.
 - ✅ (maintainer) The laptop's bar is unchanged apart from the brightness module,
   which follows the brightness keys. `Mod+Shift+r` leaves one bar.

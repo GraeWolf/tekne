@@ -131,7 +131,8 @@ if pgrep -u tester -x herbstluftwm >/dev/null; then
 fi
 echo "BARS=$(pgrep -u tester -x polybar | wc -l)"
 echo "BAR_MODULES=$(sed -n 's/^bar [^:]*: //p' /home/tester/.local/state/tekne/bar.log 2>/dev/null | head -n 1 | grep . || echo none)"
-echo "BAR_ERRORS=$(cat /home/tester/.local/state/tekne/bar.log 2>/dev/null | grep -c -i -E 'error|disabling module')"
+# Not the tray's messages about other programs' icons (live-boot.py says why).
+echo "BAR_ERRORS=$(cat /home/tester/.local/state/tekne/bar.log 2>/dev/null | grep -i -E 'error|disabling module' | grep -c -v -E 'tray: |_XEMBED_INFO')"
 # DEC-045, on an installed system: X took its seat from elogind.
 echo "SEAT_LOG=$(grep -q "Seat opened with backend 'logind'" /home/tester/.local/state/xorg/Xorg.0.log 2>/dev/null && echo logind || echo none)"
 # tekne-autologin: refused without an encrypted root; with one, turning it
