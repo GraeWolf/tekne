@@ -123,6 +123,15 @@ echo "FASTFETCH_LOGO=$(as_tester env TEKNE_FASTFETCH=1 bash -ic true 2>/dev/null
 # login (install.py waits for it before running this). Installed systems
 # without autologin run no X during the tests.
 echo "TTY1_X=$(pgrep -u tester -x Xorg >/dev/null && pgrep -u tester -x herbstluftwm >/dev/null && echo running || echo none)"
+# Phase 16 (DEC-047): tester's bar, on QEMU's one monitor, has only the modules
+# its hardware has, and polybar reported no errors. Without X, no bar.
+if pgrep -u tester -x herbstluftwm >/dev/null; then
+	for _ in $(seq 30); do pgrep -u tester -x polybar >/dev/null && break; sleep 1; done
+	sleep 3
+fi
+echo "BARS=$(pgrep -u tester -x polybar | wc -l)"
+echo "BAR_MODULES=$(sed -n 's/^bar [^:]*: //p' /home/tester/.local/state/tekne/bar.log 2>/dev/null | head -n 1 | grep . || echo none)"
+echo "BAR_ERRORS=$(cat /home/tester/.local/state/tekne/bar.log 2>/dev/null | grep -c -i -E 'error|disabling module')"
 # DEC-045, on an installed system: X took its seat from elogind.
 echo "SEAT_LOG=$(grep -q "Seat opened with backend 'logind'" /home/tester/.local/state/xorg/Xorg.0.log 2>/dev/null && echo logind || echo none)"
 # tekne-autologin: refused without an encrypted root; with one, turning it

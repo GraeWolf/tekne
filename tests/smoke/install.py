@@ -80,9 +80,11 @@ def expected(mode, luks, autologin=False, nomodeset=False):
     # DEC-042. The login keyring must exist before the boot's password login:
     # the installer made it (or, after an upgrade, the system's earlier use did).
     auto = ({"TTY1_X": "running", "SEAT_LOG": "logind", "LOCK_SCREEN": "asks for the password",
-             "KEYRING_CREATED": "before-boot", "AUTOLOGIN_ONCE": "used", "STARTX_LOG": "present"}
+             "KEYRING_CREATED": "before-boot", "AUTOLOGIN_ONCE": "used", "STARTX_LOG": "present",
+             "BARS": "1", "BAR_MODULES": "pulseaudio eth tray", "BAR_ERRORS": "0"}
             if autologin
-            else {"TTY1_X": "none", "SEAT_LOG": "none", "AUTOLOGIN_ONCE": "unused", "STARTX_LOG": "none"})
+            else {"TTY1_X": "none", "SEAT_LOG": "none", "AUTOLOGIN_ONCE": "unused", "STARTX_LOG": "none",
+                  "BARS": "0", "BAR_MODULES": "none", "BAR_ERRORS": "0"})
     return per_user | auto | {
         "PID1": "init", "RUN_SYSTEMD": "absent", "SYSTEMD_PKGS": "0",
         "LIVE_PKGS": "0", "LIVE_FILES": "0",

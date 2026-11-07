@@ -42,7 +42,7 @@ Note anything that fails, with the output of `lspci -nn` and `dmesg | tail -50`.
 | Area | Check |
 |---|---|
 | Graphics | Desktop appears at the panel's native resolution; no tearing when moving windows |
-| External display | Plug in a monitor: `xrandr` lists it; `xrandr --output <name> --auto --right-of eDP-1` shows the desktop on it |
+| External display | Plug in a monitor: `xrandr` lists it; `xrandr --output <name> --auto --right-of eDP-1` shows the desktop on it, with its own bar (the tray stays on the primary monitor). `xrandr --output <name> --off` removes the monitor and its bar |
 | Wi-Fi | Click the bar's network module (opens `nmtui`) → Activate a connection → join a network; Brave loads a page |
 | Wired | If there's a port: plugging a cable gets an address (`ip addr`) |
 | Audio | Play a video in Brave: sound from the speakers; volume keys and mute change it; headphones switch output (`pavucontrol`) |

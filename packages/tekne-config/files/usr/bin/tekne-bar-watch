@@ -1,0 +1,11 @@
+#!/bin/sh
+# Restarts Tekne's bars (tekne-bar) when herbstluftwm's monitors change. The
+# autostart turns on auto_detect_monitors, so they follow xrandr: a monitor
+# turned on gets its own bar, and one turned off takes its bar with it. Runs
+# until herbstluftwm exits.
+#   tekne-bar-watch
+herbstclient watch monitors.count || exit 1
+# Each hook is "attribute_changed", the attribute, its old and its new value.
+herbstclient --idle attribute_changed | while read -r _ attr _; do
+	[ "${attr}" = monitors.count ] && tekne-bar
+done

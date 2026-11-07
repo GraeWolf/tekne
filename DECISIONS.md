@@ -483,7 +483,7 @@ When a decision changes, edit the entry in place and add a dated line to its
   - the GPU's vendor and the driver that's bound, for graphics (DEC-041)
   - the firmware's chassis type (`/sys/class/dmi/id/chassis_type`) only as a last resort, because firmware often gets it wrong
 - **Where it's decided:**
-  - **The session**, at login: desktop components, such as the bar's modules (herbstluftwm's autostart already finds the battery's name for polybar).
+  - **The session**, at login: desktop components, such as the bar. `tekne-bar` (in `tekne-config`, from the herbstluftwm autostart) starts one polybar per monitor and includes the battery, backlight, Wi-Fi and wired-network modules only when the machine has a battery, a backlight, or a network device of that kind; `tekne-bar-watch` restarts the bars when herbstluftwm's monitors change.
   - **Device-matched hooks and rules** in `tekne-*` packages: system behaviour, such as DEC-044's keyboard hook and DEC-046's AC-adapter hook, which act only on the devices they match.
   - **Opt-in packages** for hardware stacks too heavy or risky for every install, such as `tekne-nvidia` (DEC-041).
   - **The installer**, only for what must be on the kernel command line before the system can boot, such as keeping `nomodeset` (docs/installer.md).
@@ -492,4 +492,4 @@ When a decision changes, edit the entry in place and add a dated line to its
   - Hardware changes after the install: a dock, an external monitor, a new GPU. A setting chosen at install time goes stale; a fact read at login doesn't.
   - One code path, tested in CI on QEMU's hardware (no battery, no backlight), instead of a laptop variant and a desktop variant that drift apart.
 - **Not:** separate laptop and desktop ISOs or metapackages, or an installer question about the machine type.
-- **History:** 2026-10-21 proposed (Q2), when the maintainer set up a desktop (RTX 4060 Ti driving its monitors, no battery) next to the development laptop, each developing its own hardware's features (AGENTS.md, Machines and branches). Same day, confirmed by the maintainer as written (SPEC §10.5). 2026-11-06: the desktop was dropped, and all development is on the laptop (SPEC §10). The rule stands: the live ISO still has to be right on any machine, and CI's QEMU machine has no battery, backlight or NVIDIA GPU.
+- **History:** 2026-10-21 proposed (Q2), when the maintainer set up a desktop (RTX 4060 Ti driving its monitors, no battery) next to the development laptop, each developing its own hardware's features (AGENTS.md, Machines and branches). Same day, confirmed by the maintainer as written (SPEC §10.5). 2026-11-06: the desktop was dropped, and all development is on the laptop (SPEC §10). The rule stands: the live ISO still has to be right on any machine, and CI's QEMU machine has no battery, backlight or NVIDIA GPU. Same day (Phase 16): the bar's modules and one bar per monitor come from `tekne-bar`.

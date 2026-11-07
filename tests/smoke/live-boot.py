@@ -44,6 +44,10 @@ DESKTOP_PROCESSES = [
     "xss-lock", "pipewire", "wireplumber", "pipewire-pulse",
 ]
 
+# tekne-bar's modules on the right for QEMU's one monitor (Phase 16): no
+# battery, backlight or Wi-Fi, and the tray on the primary monitor.
+BAR_MODULES = "pulseaudio eth tray"
+
 # Assembled at runtime so the echoed command line never matches the markers.
 BEGIN, END = "__TEKNE" + "_BEGIN__", "__TEKNE" + "_END__"
 CHECK_CMD = (
@@ -68,6 +72,15 @@ CHECK_CMD = (
     # windows for nmtui, Blueman and Pavucontrol.
     'fc-match -f "%{family[0]}\\n" "Symbols Nerd Font" | grep -qx "Symbols Nerd Font" && echo SYMBOLS_FONT=present || echo SYMBOLS_FONT=missing; '
     'echo "FLOAT_RULES=$(DISPLAY=:0 herbstclient list_rules | grep -c floatplacement=center)"; '
+    # Phase 16 (DEC-047): one bar per monitor, with only the modules QEMU's
+    # hardware has (no battery, backlight or Wi-Fi), and no polybar errors.
+    # polybar reports a failed module within a second of starting.
+    'sleep 3; '
+    'echo "BARS=$(pgrep -u "$(id -u)" -x polybar | wc -l)"; '
+    'echo "MONITORS=$(DISPLAY=:0 polybar --list-monitors 2>/dev/null | wc -l)"; '
+    'echo "BAR_MODULES=$(sed -n "s/^bar [^:]*: //p" ~/.local/state/tekne/bar.log | head -n 1)"; '
+    'echo "BAR_ERRORS=$(grep -c -i -E "error|disabling module" ~/.local/state/tekne/bar.log)"; '
+    'pgrep -u "$(id -u)" -x tekne-bar-watch >/dev/null && echo BAR_WATCH=up || echo BAR_WATCH=down; '
     # ssh-agent keeps a key after its first use (/etc/ssh/ssh_config.d/tekne.conf).
     'ssh -G localhost </dev/null 2>/dev/null | grep -qx "addkeystoagent true" && echo SSH_ADDKEYS=yes || echo SSH_ADDKEYS=no; '
     'sudo nft list chain inet tekne input 2>/dev/null | grep -q "policy drop" && echo FIREWALL=loaded || echo FIREWALL=missing; '
@@ -195,13 +208,19 @@ def run(mode, iso, safe=False):
     print(f"[{mode}] X seat backend: {results.get('SEAT')}, X runs as: {results.get('X_USER')}")
     print(f"[{mode}] symbols font: {results.get('SYMBOLS_FONT')}, centred float rules: {results.get('FLOAT_RULES')}, "
           f"ssh AddKeysToAgent: {results.get('SSH_ADDKEYS')}")
+    print(f"[{mode}] bars: {results.get('BARS')} for {results.get('MONITORS')} monitor(s), "
+          f"modules: {results.get('BAR_MODULES')!r}, polybar errors: {results.get('BAR_ERRORS')}, "
+          f"watch: {results.get('BAR_WATCH')}")
     print(f"[{mode}] listening beyond loopback: {', '.join(listening) or 'none'}")
     ok = (results.get("PID1") == "init" and results.get("RUN_SYSTEMD") == "absent" and not down
           and results.get("FIREWALL") == "loaded" and not listening
           and results.get("OS_ID") == "tekne" and results.get("SEAT") == "logind"
           and results.get("X_USER") == LIVE_USER
           and results.get("SYMBOLS_FONT") == "present" and results.get("FLOAT_RULES") == "3"
-          and results.get("SSH_ADDKEYS") == "yes")
+          and results.get("SSH_ADDKEYS") == "yes"
+          and results.get("BARS") == results.get("MONITORS") == "1"
+          and results.get("BAR_MODULES") == BAR_MODULES and results.get("BAR_ERRORS") == "0"
+          and results.get("BAR_WATCH") == "up")
     print(f"{'PASS' if ok else 'FAIL'} [{mode}] (serial log: {log_path})")
     return ok
 

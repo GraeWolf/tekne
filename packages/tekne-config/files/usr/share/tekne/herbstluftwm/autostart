@@ -101,6 +101,8 @@ hc rule class~'[Bb]lueman-manager' floating=on floatplacement=center
 hc rule class~'[Pp]avucontrol' floating=on floatplacement=center
 
 hc unlock
+# Monitors follow xrandr from now on, and tekne-bar-watch gives each one a bar.
+hc set auto_detect_monitors true
 hc detect_monitors
 herbstclient chain "${queue[@]}"
 
@@ -128,15 +130,7 @@ tekne-run-once copyq copyq --start-server
 tekne-run-once blueman-applet
 tekne-run-once xss-lock xss-lock --transfer-sleep-lock -- i3lock --nofork --color=1a1b26
 
-# polybar's battery module defaults to BAT0 and ADP1, but laptops also use
-# BAT1, AC, ACAD and so on. Pass it the system's own names. Scope "Device"
-# marks the batteries of mice and other peripherals, not the laptop's.
-for supply in /sys/class/power_supply/*; do
-	[ "$(cat "${supply}/scope" 2>/dev/null)" = Device ] && continue
-	case "$(cat "${supply}/type" 2>/dev/null)" in
-		Battery) : "${TEKNE_BATTERY:=${supply##*/}}" ;;
-		Mains)   : "${TEKNE_ADAPTER:=${supply##*/}}" ;;
-	esac
-done
-export TEKNE_BATTERY TEKNE_ADAPTER
-tekne-run-once polybar polybar --config=/usr/share/tekne/polybar/config.ini tekne
+# One bar per monitor, with the modules the hardware has (DEC-047). A reload
+# keeps the running bars; tekne-bar-watch restarts them when monitors change.
+pgrep -u "$(id -u)" -x polybar >/dev/null || tekne-bar
+tekne-run-once tekne-bar-watch

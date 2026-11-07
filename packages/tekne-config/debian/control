@@ -16,6 +16,8 @@ Depends: ${misc:Depends},
 # Commands the helper scripts in /usr/bin call. The programs the herbstluftwm
 # autostart starts come with tekne-desktop.
  herbstluftwm,
+ polybar,
+ brightnessctl,
  alacritty,
  procps,
  rofi,

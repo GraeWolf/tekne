@@ -634,8 +634,9 @@ alone (AGENTS.md).
 1. **A bar that fits the hardware, on every monitor (DEC-047, U2).** The herbstluftwm
    autostart chooses polybar's modules from what exists: `battery` only with a
    battery, and a backlight module only with a backlight. polybar starts once per
-   monitor, so a docked laptop gets a bar on each screen. The laptop's own bar is
-   unchanged; CI's QEMU machine shows neither module.
+   monitor, so a docked laptop gets a bar on each screen. The laptop's own bar
+   gains a brightness module and is otherwise unchanged; CI's QEMU machine shows
+   neither module.
 2. **The HDMI port (DEC-041).** It's wired to the NVIDIA GPU. `tekne-nvidia` drives
    `nvidia-drm` with XLibre's `modesetting` DDX instead of NVIDIA's, as the desktop's
    trial did. On the laptop X then keeps the GPU open for the whole session, so the
@@ -705,13 +706,26 @@ among them. Also:
 ### 10.7 Phases and acceptance criteria
 Phase numbers continue from §9.7.
 
-**Phase 16: the bar fits the hardware.** Not started.
-- The autostart picks polybar's modules from the hardware (DEC-047), and starts one
-  bar per monitor (U2).
-- ✅ In QEMU (no battery, no backlight), `live-boot.py` checks that the bar has no
-  battery or backlight module and that polybar logs no module errors.
-- ✅ (maintainer) The laptop's bar is unchanged: battery and the rest. With an
-  external monitor, each screen has a bar, and unplugging it leaves one.
+**Phase 16: the bar fits the hardware.** In progress. Maintainer's answers
+(2026-11-06): the bar gets a brightness module where there's a backlight; the tray
+goes on the primary monitor only (polybar allows one); herbstluftwm's
+`auto_detect_monitors` is on, so monitors follow `xrandr`; and there's no external
+monitor for the laptop, so its multi-monitor check waits for Phase 18's HDMI port.
+- `tekne-bar` and `tekne-bar-watch` in `tekne-config` (DEC-047): one polybar per
+  monitor, with the battery, backlight, Wi-Fi and wired modules only where the
+  hardware has them, the tray on the primary monitor, and the bars restarted when
+  herbstluftwm's monitor count changes (U2). The autostart turns on
+  `auto_detect_monitors`. `bar.log` in `~/.local/state/tekne/` records each bar's
+  modules and polybar's messages. docs/desktop-stack.md, docs/customizing.md and
+  docs/testing.md.
+- ✅ In QEMU (no battery, no backlight, no Wi-Fi), `live-boot.py` checks that one bar
+  runs for the one monitor with `pulseaudio eth tray` on the right, that polybar
+  logs no errors, and that `tekne-bar-watch` runs. `install.py`'s LUKS cases, where
+  autologin starts X, check the same on installed systems, and so does `upgrade.py`.
+- ✅ (maintainer) The laptop's bar is unchanged apart from the brightness module,
+  which follows the brightness keys. `Mod+Shift+r` leaves one bar.
+- ✅ (maintainer, with Phase 18) With a monitor on the HDMI port, each screen has a
+  bar and the tray stays on the laptop's panel; turning it off leaves one.
 
 **Phase 17 (desktop): NVIDIA outputs.** Dropped on 2026-11-06 with the desktop
 (§10.6, X1). The root-X test and the `modesetting` trial were done on 2026-10-22 and

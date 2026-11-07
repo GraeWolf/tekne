@@ -17,7 +17,7 @@ and configured by `tekne-config`.
 | Login | tty1 login → `startx` (DEC-014) | Encrypted installs: optional autologin on tty1 after the LUKS passphrase (DEC-042, `tekne-autologin`). Live session: autologin on tty1–6 |
 | Seat/session | `elogind`, `libpam-elogind`, `polkitd` | Rootless X, device access, lid/power keys. Devuan's `libelogind-compat` replaces `libsystemd0` in the desktop image, and `udev` is Devuan's transitional package for `eudev` |
 | Window manager | `herbstluftwm` | |
-| Bar | `polybar` | All nine tags (active, occupied, empty), window title, the clock in the centre, then volume, network, battery and the tray, with Nerd Font icons (DEC-043) |
+| Bar | `polybar` | All nine tags (active, occupied, empty), window title, the clock in the centre, then volume, brightness, network, battery and the tray, with Nerd Font icons (DEC-043). `tekne-bar` starts one per monitor and leaves out the modules for hardware the machine doesn't have (DEC-047); the tray goes on the primary monitor. `tekne-bar-watch` restarts the bars when monitors come or go |
 | Launcher | `rofi` | App launcher, window switcher, power menu |
 | Notifications | `dunst` | |
 | Compositor | `picom` | Tear-free, minimal effects |
@@ -99,7 +99,7 @@ Debian's standard `startx` → `Xsession` path, so a user's own `~/.xinitrc` or
      `copyq --start-server`, `blueman-applet`
    - `xss-lock --transfer-sleep-lock -- i3lock`
    - the wallpaper, `/usr/share/backgrounds/tekne/tekne.png` from `tekne-branding`, set with `feh` (it isn't a running process)
-   - `polybar` with `/usr/share/tekne/polybar/config.ini`
+   - `tekne-bar`: `polybar` with `/usr/share/tekne/polybar/config.ini`, once per monitor, and `tekne-bar-watch`
 
 `herbstluftwm`, `polybar`, `dunst` and `nftables` each own their default config file as a
 conffile. Tekne never overwrites or diverts those files. It passes its own files from

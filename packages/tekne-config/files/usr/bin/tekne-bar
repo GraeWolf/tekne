@@ -1,0 +1,71 @@
+#!/bin/sh
+# Starts Tekne's bar: one polybar per monitor, with the modules this machine's
+# hardware has (DEC-047). The herbstluftwm autostart runs it at login, and
+# tekne-bar-watch whenever monitors come or go. It replaces this user's
+# running bars. What it started, and polybar's own messages, go to
+# ~/.local/state/tekne/bar.log. A ~/.config/polybar/config.ini (a copy of
+# Tekne's, with its bar "tekne") is used instead of Tekne's own.
+#   tekne-bar
+config="${XDG_CONFIG_HOME:-${HOME}/.config}/polybar/config.ini"
+[ -r "${config}" ] || config=/usr/share/tekne/polybar/config.ini
+state="${XDG_STATE_HOME:-${HOME}/.local/state}/tekne"
+log="${state}/bar.log"
+mkdir -p "${state}"
+
+# polybar's battery module defaults to BAT0 and ADP1, but laptops also use
+# BAT1, AC, ACAD and so on. Pass it the system's own names. Scope "Device"
+# marks the batteries of mice and other peripherals, not the laptop's.
+battery="${TEKNE_BATTERY:-}"
+adapter="${TEKNE_ADAPTER:-}"
+for supply in /sys/class/power_supply/*; do
+	[ "$(cat "${supply}/scope" 2>/dev/null)" = Device ] && continue
+	case "$(cat "${supply}/type" 2>/dev/null)" in
+		Battery) [ -n "${battery}" ] || battery="${supply##*/}" ;;
+		Mains)   [ -n "${adapter}" ] || adapter="${supply##*/}" ;;
+	esac
+done
+# The backlight the brightness keys change: brightnessctl's default device.
+backlight="${TEKNE_BACKLIGHT:-$(brightnessctl -m -c backlight info 2>/dev/null | cut -d, -f1)}"
+
+# polybar's network modules give up, with an error, when no interface of
+# their kind exists. Count only real devices, not lo or bridges.
+wireless= wired=
+for net in /sys/class/net/*; do
+	[ -e "${net}/device" ] || continue
+	if [ -e "${net}/wireless" ]; then wireless=yes; else wired=yes; fi
+done
+
+modules=pulseaudio
+[ -n "${backlight}" ] && modules="${modules} backlight"
+[ -n "${wireless}" ] && modules="${modules} wlan"
+[ -n "${wired}" ] && modules="${modules} eth"
+[ -n "${battery}" ] && modules="${modules} battery"
+
+# "eDP-1: 2560x1440+0+0 (primary)". The tray, which only one bar can hold, goes
+# on the primary monitor, or the first one when none is primary.
+monitors="$(polybar --list-monitors 2>/dev/null)"
+primary="$(printf '%s\n' "${monitors}" | grep -m 1 '(primary)' | cut -d: -f1)"
+[ -n "${primary}" ] || primary="$(printf '%s\n' "${monitors}" | head -n 1 | cut -d: -f1)"
+
+pkill -u "$(id -u)" -x polybar
+for _ in $(seq 20); do
+	pgrep -u "$(id -u)" -x polybar >/dev/null || break
+	sleep 0.1
+done
+
+: >"${log}"
+start() {
+	right="${modules}"
+	[ "$1" = "${primary}" ] && right="${right} tray"
+	echo "bar ${1:-default}: ${right}" >>"${log}"
+	MONITOR="$1" TEKNE_MODULES_RIGHT="${right}" TEKNE_BATTERY="${battery}" \
+		TEKNE_ADAPTER="${adapter}" TEKNE_BACKLIGHT="${backlight}" \
+		polybar --config="${config}" tekne >>"${log}" 2>&1 &
+}
+if [ -n "${primary}" ]; then
+	for monitor in $(printf '%s\n' "${monitors}" | cut -d: -f1); do
+		start "${monitor}"
+	done
+else
+	start ""
+fi
